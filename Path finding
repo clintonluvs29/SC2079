@@ -1,0 +1,130 @@
+import math
+
+def mod2pi(theta):
+    return theta - 2.0 * math.pi * math.floor(theta / (2.0 * math.pi))
+
+def LSL(alpha, beta, d):
+    tmp = d + math.sin(alpha) - math.sin(beta)
+    p_sq = 2 + d*d - 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) - math.sin(beta))
+    if p_sq < 0:
+        return None
+    p = math.sqrt(p_sq)
+    t = mod2pi(-alpha + math.atan2((math.cos(beta) - math.cos(alpha)), tmp))
+    q = mod2pi(beta - math.atan2((math.cos(beta) - math.cos(alpha)), tmp))
+    return t, p, q
+
+def RSR(alpha, beta, d):
+    tmp = d - math.sin(alpha) + math.sin(beta)
+    p_sq = 2 + d*d - 2*math.cos(alpha - beta) + 2*d*(math.sin(beta) - math.sin(alpha))
+    if p_sq < 0:
+        return None
+    p = math.sqrt(p_sq)
+    t = mod2pi(alpha - math.atan2((math.cos(alpha) - math.cos(beta)), tmp))
+    q = mod2pi(-beta + math.atan2((math.cos(alpha) - math.cos(beta)), tmp))
+    return t, p, q
+
+def LSR(alpha, beta, d):
+    p_sq = -2 + d*d + 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) + math.sin(beta))
+    if p_sq < 0:
+        return None
+    p = math.sqrt(p_sq)
+    tmp = math.atan2(-math.cos(alpha) - math.cos(beta),
+                     d + math.sin(alpha) + math.sin(beta))
+    t = mod2pi(-alpha + tmp)
+    q = mod2pi(-beta + tmp)
+    return t, p, q
+
+def RSL(alpha, beta, d):
+    p_sq = -2 + d*d + 2*math.cos(alpha - beta) - 2*d*(math.sin(alpha) + math.sin(beta))
+    if p_sq < 0:
+        return None
+    p = math.sqrt(p_sq)
+    tmp = math.atan2(math.cos(alpha) + math.cos(beta),
+                     d - math.sin(alpha) - math.sin(beta))
+    t = mod2pi(alpha - tmp)
+    q = mod2pi(beta - tmp)
+    return t, p, q
+
+def RLR(alpha, beta, d):
+    tmp = (6 - d*d + 2*math.cos(alpha - beta) +
+           2*d*(math.sin(alpha) - math.sin(beta))) / 8
+    if abs(tmp) > 1:
+        return None
+    p = mod2pi(2*math.pi - math.acos(tmp))
+    t = mod2pi(alpha - math.atan2(math.cos(alpha) - math.cos(beta),
+                                  d - math.sin(alpha) + math.sin(beta)) + p/2)
+    q = mod2pi(alpha - beta - t + p)
+    return t, p, q
+
+def LRL(alpha, beta, d):
+    tmp = (6 - d*d + 2*math.cos(alpha - beta) +
+           2*d*(math.sin(beta) - math.sin(alpha))) / 8
+    if abs(tmp) > 1:
+        return None
+    p = mod2pi(2*math.pi - math.acos(tmp))
+    t = mod2pi(-alpha - math.atan2(math.cos(alpha) - math.cos(beta),
+                                   d + math.sin(alpha) - math.sin(beta)) + p/2)
+    q = mod2pi(beta - alpha - t + p)
+    return t, p, q
+
+def dubins_shortest_path(q0, q1, R):
+    dx = q1[0] - q0[0]
+    dy = q1[1] - q0[1]
+    D = math.hypot(dx, dy)
+    d = D / R
+
+    theta = math.atan2(dy, dx)
+    alpha = mod2pi(q0[2] - theta)
+    beta  = mod2pi(q1[2] - theta)
+
+    candidates = {
+        "LSL": LSL(alpha, beta, d),
+        "RSR": RSR(alpha, beta, d),
+        "LSR": LSR(alpha, beta, d),
+        "RSL": RSL(alpha, beta, d),
+        "RLR": RLR(alpha, beta, d),
+        "LRL": LRL(alpha, beta, d),
+    }
+
+    best_type = None
+    best_length = float("inf")
+    best_segments = None
+
+    for path_type, segs in candidates.items():
+        if segs is None:
+            continue
+        length = sum(segs)
+        if length < best_length:
+            best_length = length
+            best_type = path_type
+            best_segments = segs
+
+    return best_type, best_segments
+
+def segments_to_commands(path_type, segments, R):
+    commands = []
+    types = list(path_type)  # e.g. ['L','S','L']
+
+    for motion, length in zip(types, segments):
+        if motion == "S":
+            dist = length * R
+            commands.append(("S", dist))
+        else:
+            arc = length * R
+            commands.append((motion, arc))
+
+    return commands
+
+#example of how to run
+"""
+q0 = (0.0, 0.0, 0.0)
+q1 = (5.0, 3.0, math.pi/2)
+R = 1.0  # meters
+
+path_type, segments = dubins_shortest_path(q0, q1, R)
+commands = segments_to_commands(path_type, segments, R)
+
+print("Dubins type:", path_type)
+for cmd in commands:
+    print(cmd)
+"""
