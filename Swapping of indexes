@@ -1,0 +1,23 @@
+def swap(path, i, j):
+    path[i], path[j] = path[j], path[i]
+
+def path_length(path):
+    total = 0.0
+    for i in range(len(path) - 1):
+        total += distance(path[i], path[i + 1])
+    return total
+
+def improve_path(path):
+    best_length = path_length(path)
+
+    for i in range(1, len(path) - 1):
+        # swap adjacent vertices
+        swap(path, i, i + 1)
+
+        new_length = path_length(path)
+
+        # undo swap if it’s not better
+        if new_length >= best_length:
+            swap(path, i, i + 1)
+        else:
+            best_length = new_length
