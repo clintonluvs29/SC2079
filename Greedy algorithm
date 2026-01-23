@@ -2,8 +2,7 @@
 #include <stdbool.h>
 #include <float.h>
 
-#define N 100      // total number of locations
-#define STEPS 5    // repeat 5 times
+#define N 5      // total number of locations
 
 double distance(int v, int w);  // assume this is implemented elsewhere
 
@@ -21,7 +20,7 @@ void nearestNeighbour(int S, int queue[STEPS + 1]) {
     visited[v] = true;
 
     // repeat 5 times
-    for (int i = 1; i <= STEPS; i++) {
+    for (int i = 1; i <= N; i++) {
         double minDist = DBL_MAX;
         int nearest = -1;
 
