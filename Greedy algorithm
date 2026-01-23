@@ -1,0 +1,44 @@
+#include <stdio.h>
+#include <stdbool.h>
+#include <float.h>
+
+#define N 100      // total number of locations
+#define STEPS 5    // repeat 5 times
+
+double distance(int v, int w);  // assume this is implemented elsewhere
+
+void nearestNeighbour(int S, int queue[STEPS + 1]) {
+    bool visited[N];
+    int v = S;
+
+    // initialize visited array
+    for (int j = 0; j < N; j++) {
+        visited[j] = false;
+    }
+
+    // put starting node into queue
+    queue[0] = v;
+    visited[v] = true;
+
+    // repeat 5 times
+    for (int i = 1; i <= STEPS; i++) {
+        double minDist = DBL_MAX;
+        int nearest = -1;
+
+        // find nearest unvisited neighbor
+        for (int w = 0; w < N; w++) {
+            if (!visited[w]) {
+                double d = distance(v, w);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = w;
+                }
+            }
+        }
+
+        // update queue and visited
+        queue[i] = nearest;
+        visited[nearest] = true;
+        v = nearest;
+    }
+}
