@@ -1,43 +1,25 @@
-#include <stdio.h>
-#include <stdbool.h>
-#include <float.h>
+def nearest_neighbour(start, n):
+    visited = [False] * n
+    path = []
 
-#define N 5      // total number of locations
+    v = start
+    path.append(v)
+    visited[v] = True
 
-double distance(int v, int w);  // assume this is implemented elsewhere
+    # repeat until all vertices are visited
+    for _ in range(n - 1):
+        nearest = None
+        min_dist = float('inf')
 
-void nearestNeighbour(int S, int queue[N + 1]) {
-    bool visited[N];
-    int v = S;
+        for w in range(n):
+            if not visited[w]:
+                d = distance(v, w)
+                if d < min_dist:
+                    min_dist = d
+                    nearest = w
 
-    // initialize visited array
-    for (int j = 0; j < N; j++) {
-        visited[j] = false;
-    }
+        path.append(nearest)
+        visited[nearest] = True
+        v = nearest
 
-    // put starting node into queue
-    queue[0] = v;
-    visited[v] = true;
-
-    // repeat 5 times
-    for (int i = 1; i <= N; i++) {
-        double minDist = DBL_MAX;
-        int nearest = -1;
-
-        // find nearest unvisited neighbor
-        for (int w = 0; w < N; w++) {
-            if (!visited[w]) {
-                double d = distance(v, w);
-                if (d < minDist) {
-                    minDist = d;
-                    nearest = w;
-                }
-            }
-        }
-
-        // update queue and visited
-        queue[i] = nearest;
-        visited[nearest] = true;
-        v = nearest;
-    }
-}
+    return path
