@@ -1,0 +1,45 @@
+import math
+
+def euclidean(p, q):
+    return math.hypot(p[0] - q[0], p[1] - q[1])
+
+def nearest_neighbour_optimized(start, points):
+    n = len(points)
+    visited = [False] * n
+    path = []
+
+    v = start
+    path.append(v)
+    visited[v] = True
+
+    for _ in range(n - 1):
+        candidates = []
+
+        # 1. Compute Euclidean distances (cheap)
+        for w in range(n):
+            if not visited[w]:
+                e_dist = euclidean(points[v], points[w])
+                candidates.append((e_dist, w))
+
+        # 2. Sort by Euclidean distance
+        candidates.sort(key=lambda x: x[0])
+
+        best_dubins = float('inf')
+        best_w = None
+
+        # 3. Check in increasing Euclidean order
+        for e_dist, w in candidates:
+            # pruning condition
+            if e_dist >= best_dubins:
+                break
+
+            d_dist = dubins_distance(v, w)  # expensive
+            if d_dist < best_dubins:
+                best_dubins = d_dist
+                best_w = w
+
+        path.append(best_w)
+        visited[best_w] = True
+        v = best_w
+
+    return path
