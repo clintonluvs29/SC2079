@@ -6,7 +6,7 @@
 
 double distance(int v, int w);  // assume this is implemented elsewhere
 
-void nearestNeighbour(int S, int queue[STEPS + 1]) {
+void nearestNeighbour(int S, int queue[N + 1]) {
     bool visited[N];
     int v = S;
 
