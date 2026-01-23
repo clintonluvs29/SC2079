@@ -1,0 +1,54 @@
+def total_path_length(path):
+    total = 0.0
+    for i in range(len(path) - 1):
+        total += dubins_distance(path[i], path[i + 1])
+    return total
+
+import itertools
+
+def exhaustive_search(start, nodes):
+    """
+    start : index of start node
+    nodes : list of indices to visit (excluding start)
+    """
+    best_path = None
+    best_length = float('inf')
+
+    for perm in itertools.permutations(nodes):
+        path = [start] + list(perm)
+        length = total_path_length(path)
+
+        if length < best_length:
+            best_length = length
+            best_path = path
+
+    return best_path, best_length
+
+#pruning
+
+def exhaustive_search_pruned(start, nodes):
+    best_length = float('inf')
+    best_path = None
+
+    def dfs(path, remaining, current_length):
+        nonlocal best_length, best_path
+
+        if current_length >= best_length:
+            return  # prune
+
+        if not remaining:
+            best_length = current_length
+            best_path = path[:]
+            return
+
+        last = path[-1]
+        for w in remaining:
+            d = dubins_distance(last, w)
+            dfs(
+                path + [w],
+                [x for x in remaining if x != w],
+                current_length + d
+            )
+
+    dfs([start], nodes, 0.0)
+    return best_path, best_length
