@@ -1,3 +1,6 @@
+#reversing
+#cut path into half
+
 def nearest_neighbour(start, n):
     visited = [False] * n
     path = []
