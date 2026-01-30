@@ -1,0 +1,230 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <float.h>
+#include <string.h>
+
+#define PI 3.14159265358979323846
+#define STEP 0.5
+#define MAX_POINTS 100
+#define MAX_OBS 100
+#define MAX_CMDS 300
+
+// --------------------- Structs --------------------- //
+typedef struct {
+    double t, p, q;
+    int valid;
+} DubinsSeg;
+
+typedef struct {
+    char motion;
+    double distance;
+} Command;
+
+typedef struct {
+    double x, y, theta;
+} Pose;
+
+typedef struct {
+    double xmin, xmax, ymin, ymax;
+} Obstacle;
+
+typedef struct {
+    double x, y;
+    char dir; // 'N', 'S', 'E', 'W'
+} Point;
+
+// --------------------- Utility Functions --------------------- //
+double mod2pi(double theta) {
+    return theta - 2.0 * PI * floor(theta / (2.0 * PI));
+}
+
+double euclidean(Pose p, Pose q) {
+    return hypot(p.x - q.x, p.y - q.y);
+}
+
+// --------------------- Dubins Path Types --------------------- //
+DubinsSeg LSL(double alpha, double beta, double d) {
+    DubinsSeg seg = {0,0,0,0};
+    double tmp = d + sin(alpha) - sin(beta);
+    double p_sq = 2 + d*d - 2*cos(alpha - beta) + 2*d*(sin(alpha)-sin(beta));
+    if (p_sq < 0) return seg;
+    double p = sqrt(p_sq);
+    double t = mod2pi(-alpha + atan2(cos(beta)-cos(alpha), tmp));
+    double q = mod2pi(beta - atan2(cos(beta)-cos(alpha), tmp));
+    seg.t=t; seg.p=p; seg.q=q; seg.valid=1;
+    return seg;
+}
+
+DubinsSeg RSR(double alpha, double beta, double d) {
+    DubinsSeg seg={0,0,0,0};
+    double tmp = d - sin(alpha) + sin(beta);
+    double p_sq = 2 + d*d - 2*cos(alpha-beta) + 2*d*(sin(beta)-sin(alpha));
+    if(p_sq<0) return seg;
+    double p = sqrt(p_sq);
+    double t = mod2pi(alpha - atan2(cos(alpha)-cos(beta), tmp));
+    double q = mod2pi(-beta + atan2(cos(alpha)-cos(beta), tmp));
+    seg.t=t; seg.p=p; seg.q=q; seg.valid=1;
+    return seg;
+}
+
+DubinsSeg LSR(double alpha, double beta, double d) {
+    DubinsSeg seg={0,0,0,0};
+    double p_sq=-2+d*d + 2*cos(alpha-beta)+2*d*(sin(alpha)+sin(beta));
+    if(p_sq<0) return seg;
+    double p = sqrt(p_sq);
+    double tmp=atan2(-cos(alpha)-cos(beta), d+sin(alpha)+sin(beta));
+    double t=mod2pi(-alpha+tmp);
+    double q=mod2pi(-beta+tmp);
+    seg.t=t; seg.p=p; seg.q=q; seg.valid=1;
+    return seg;
+}
+
+DubinsSeg RSL(double alpha, double beta, double d) {
+    DubinsSeg seg={0,0,0,0};
+    double p_sq=-2+d*d+2*cos(alpha-beta)-2*d*(sin(alpha)+sin(beta));
+    if(p_sq<0) return seg;
+    double p=sqrt(p_sq);
+    double tmp=atan2(cos(alpha)+cos(beta), d - sin(alpha) - sin(beta));
+    double t=mod2pi(alpha - tmp);
+    double q=mod2pi(beta - tmp);
+    seg.t=t; seg.p=p; seg.q=q; seg.valid=1;
+    return seg;
+}
+
+DubinsSeg RLR(double alpha, double beta, double d) {
+    DubinsSeg seg={0,0,0,0};
+    double tmp=(6 - d*d + 2*cos(alpha-beta)+2*d*(sin(alpha)-sin(beta)))/8;
+    if(fabs(tmp)>1) return seg;
+    double p=mod2pi(2*PI - acos(tmp));
+    double t=mod2pi(alpha - atan2(cos(alpha)-cos(beta), d - sin(alpha)+sin(beta)) + p/2);
+    double q=mod2pi(alpha - beta - t + p);
+    seg.t=t; seg.p=p; seg.q=q; seg.valid=1;
+    return seg;
+}
+
+DubinsSeg LRL(double alpha, double beta, double d) {
+    DubinsSeg seg={0,0,0,0};
+    double tmp=(6 - d*d + 2*cos(alpha-beta)+2*d*(sin(beta)-sin(alpha)))/8;
+    if(fabs(tmp)>1) return seg;
+    double p=mod2pi(2*PI - acos(tmp));
+    double t=mod2pi(-alpha - atan2(cos(alpha)-cos(beta), d + sin(alpha)-sin(beta)) + p/2);
+    double q=mod2pi(beta - alpha - t + p);
+    seg.t=t; seg.p=p; seg.q=q; seg.valid=1;
+    return seg;
+}
+
+// --------------------- Dubins Shortest Path --------------------- //
+DubinsSeg dubins_shortest_path(Pose q0, Pose q1, double R, char out_type[4]) {
+    double dx=q1.x - q0.x;
+    double dy=q1.y - q0.y;
+    double D = hypot(dx, dy);
+    double d = D / R;
+    double theta = atan2(dy, dx);
+    double alpha = mod2pi(q0.theta - theta);
+    double beta = mod2pi(q1.theta - theta);
+
+    struct { char type[4]; DubinsSeg seg; } candidates[6];
+    strcpy(candidates[0].type,"LSL"); candidates[0].seg=LSL(alpha,beta,d);
+    strcpy(candidates[1].type,"RSR"); candidates[1].seg=RSR(alpha,beta,d);
+    strcpy(candidates[2].type,"LSR"); candidates[2].seg=LSR(alpha,beta,d);
+    strcpy(candidates[3].type,"RSL"); candidates[3].seg=RSL(alpha,beta,d);
+    strcpy(candidates[4].type,"RLR"); candidates[4].seg=RLR(alpha,beta,d);
+    strcpy(candidates[5].type,"LRL"); candidates[5].seg=LRL(alpha,beta,d);
+
+    double best_length = DBL_MAX;
+    DubinsSeg best_seg={0,0,0,0};
+    for(int i=0;i<6;i++) {
+        if(!candidates[i].seg.valid) continue;
+        double len=candidates[i].seg.t + candidates[i].seg.p + candidates[i].seg.q;
+        if(len<best_length) {
+            best_length=len;
+            best_seg=candidates[i].seg;
+            strcpy(out_type,candidates[i].type);
+        }
+    }
+    return best_seg;
+}
+
+// --------------------- Segment to Commands --------------------- //
+void segments_to_commands(const char *path_type, DubinsSeg seg, double R, Command commands[3]) {
+    commands[0].motion = path_type[0]; commands[0].distance = seg.t * R;
+    commands[1].motion = path_type[1]; commands[1].distance = seg.p * R;
+    commands[2].motion = path_type[2]; commands[2].distance = seg.q * R;
+}
+
+// --------------------- Points to Goals --------------------- //
+void points_to_goals(Point *points, int n, Pose *goals) {
+    for(int i=0;i<n;i++){
+        switch(points[i].dir){
+            case 'N': goals[i].x = points[i].x+5;  goals[i].y = points[i].y+25; goals[i].theta=-PI/2; break;
+            case 'S': goals[i].x = points[i].x-5;  goals[i].y = points[i].y-25; goals[i].theta= PI/2; break;
+            case 'W': goals[i].x = points[i].x-25; goals[i].y = points[i].y+5;  goals[i].theta=0; break;
+            case 'E': goals[i].x = points[i].x+25; goals[i].y = points[i].y-5;  goals[i].theta=PI; break;
+            default: printf("Unknown direction\n"); exit(1);
+        }
+    }
+}
+
+// --------------------- Nearest Neighbour TSP --------------------- //
+void nearest_neighbour(Pose *goals, int n, int start, int *path) {
+    int visited[MAX_POINTS]={0};
+    path[0]=start;
+    visited[start]=1;
+    int last=start;
+
+    for(int step=1; step<n; step++){
+        double best_dist=DBL_MAX;
+        int best_i=-1;
+        for(int i=0;i<n;i++){
+            if(!visited[i]){
+                double dist = euclidean(goals[last], goals[i]);
+                if(dist<best_dist){
+                    best_dist=dist;
+                    best_i=i;
+                }
+            }
+        }
+        if(best_i<0){ printf("No valid next point\n"); exit(1); }
+        path[step]=best_i;
+        visited[best_i]=1;
+        last=best_i;
+    }
+}
+
+// --------------------- Flattened Dubins Commands --------------------- //
+int flattened_dubins_commands(Pose *goals, int *path, int n, double R, Command *all_cmds, int max_cmds) {
+    int total=0;
+    for(int i=0;i<n-1;i++) {
+        Pose q0=goals[path[i]], q1=goals[path[i+1]];
+        char path_type[4];
+        DubinsSeg seg = dubins_shortest_path(q0,q1,R,path_type);
+        if(!seg.valid) return -1;
+        Command cmds[3];
+        segments_to_commands(path_type,seg,R,cmds);
+        for(int j=0;j<3 && total<max_cmds;j++) all_cmds[total++]=cmds[j];
+    }
+    return total;
+}
+
+// --------------------- Main --------------------- //
+int main() {
+    Point points[3]={{50,50,'S'},{120,80,'N'},{180,40,'E'}};
+    int n_points=3;
+    Pose goals[MAX_POINTS];
+    points_to_goals(points,n_points,goals);
+
+    int path[MAX_POINTS];
+    nearest_neighbour(goals,n_points,0,path);
+
+    double R=5.0;
+    Command all_cmds[MAX_CMDS];
+    int n_cmds = flattened_dubins_commands(goals,path,n_points,R,all_cmds,MAX_CMDS);
+    if(n_cmds<0){ printf("No feasible Dubins path\n"); return 1; }
+
+    printf("Full sequential Dubins commands:\n");
+    for(int i=0;i<n_cmds;i++)
+        printf("%c %.2f\n", all_cmds[i].motion, all_cmds[i].distance);
+
+    return 0;
+}
