@@ -6,6 +6,8 @@ Y_MIN, Y_MAX = 0.0, 200.0
 def mod2pi(theta):
     return theta - 2.0 * math.pi * math.floor(theta / (2.0 * math.pi))
 
+
+#---- LSL, etc. ----#
 def LSL(alpha, beta, d):
     tmp = d + math.sin(alpha) - math.sin(beta)
     p_sq = 2 + d*d - 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) - math.sin(beta))
@@ -69,6 +71,8 @@ def LRL(alpha, beta, d):
                                    d + math.sin(alpha) - math.sin(beta)) + p/2)
     q = mod2pi(beta - alpha - t + p)
     return t, p, q
+#---- LSL, etc. ----#
+
 
 def dubins_distance(q0, q1, R):
     """
@@ -102,53 +106,29 @@ def euclidean(p, q):
     return math.hypot(p[0] - q[0], p[1] - q[1])
 #def dubins_distance
 
-def nearest_neighbour_optimized(start, points, R):
-    n = len(points)
-    visited = [False] * n
-    path = []
+for e_dist, w in candidates:
+    if e_dist >= best_dubins:
+        break
 
-    v = start
-    path.append(v)
-    visited[v] = True
+    obstacles = build_obstacles(
+        [points[i] for i in range(n) if i not in (v, w)]
+    )
 
-    for _ in range(n - 1):
-        candidates = []
+    edge = dubins_path_collision_free(points[v], points[w], R, obstacles)
+    if edge is None:
+        continue
 
-        # 1. Compute Euclidean distances (cheap)
-        for w in range(n):
-            if not visited[w]:
-                e_dist = euclidean(points[v], points[w])
-                candidates.append((e_dist, w))
+    d_dist = edge[2]
+    if d_dist < best_dubins:
+        best_dubins = d_dist
+        best_w = w
 
-        # 2. Sort by Euclidean distance
-        candidates.sort(key=lambda x: x[0])
+if best_w is None:
+    raise RuntimeError(f"No collision-free Dubins edge from node {v}")
 
-        best_dubins = float('inf')
-        best_w = None
-
-        # 3. Check in increasing Euclidean order
-        for e_dist, w in candidates:
-            # pruning condition
-            if e_dist >= best_dubins:
-                break
-
-            obstacles = build_obstacles(points)
-
-            path = dubins_path_collision_free(points[v], points[w], R, obstacles)
-            if path is None:
-                continue  # invalid edge
-            
-            d_dist = path[2]
-
-            if d_dist < best_dubins:
-                best_dubins = d_dist
-                best_w = w
-
-        path.append(best_w)
-        visited[best_w] = True
-        v = best_w
-
-    return path
+path.append(best_w)
+visited[best_w] = True
+v = best_w
 
 def swap(path, i, j):
     path[i], path[j] = path[j], path[i]
@@ -156,8 +136,17 @@ def swap(path, i, j):
 def path_length(path, points, R):
     total = 0.0
     for i in range(len(path) - 1):
-        total += dubins_distance(points[path[i]], points[path[i+1]], R)
+        obstacles = build_obstacles(
+            [points[k] for k in range(len(points)) if k not in (path[i], path[i+1])]
+        )
+        edge = dubins_path_collision_free(
+            points[path[i]], points[path[i+1]], R, obstacles
+        )
+        if edge is None:
+            return float("inf")
+        total += edge[2]
     return total
+
 
 def improve_path(path, points, R):
     best_length = path_length(path, points, R)
@@ -281,7 +270,7 @@ def build_obstacles(points):
             y + 25   # ymax
         ))
     return obstacles
-++++++++++++++++++++++++++++
+
 
 def point_in_rect(x, y, rect):
     xmin, xmax, ymin, ymax = rect
@@ -321,18 +310,48 @@ for cmd in commands:
 """
 
 start = 0
-points = [
-    (50, 50, 0.0),
-    (120, 80, math.pi/2),
-    (180, 40, math.pi),
+obstacle_points = [
+    (50, 50, S),
+    (120, 80, N),
+    (180, 40, E)
 ]
+
+def points_to_goals(points):
+    goals = []
+
+    for x, y, direction in points:
+
+        if direction == "N":
+            # goal below the point, facing north
+            goal = (x + 5, y + 25, -math.pi / 2)
+
+        elif direction == "S":
+            # goal above the point, facing south
+            goal = (x - 5, y - 25, math.pi / 2)
+
+        elif direction == "W":
+            # goal right of the point, facing west
+            goal = (x - 25, y + 5, 0.0)
+
+        elif direction == "E":
+            # goal left of the point, facing east
+            goal = (x + 25, y - 5, math.pi)
+
+        else:
+            raise ValueError(f"Unknown direction: {direction}")
+
+        goals.append(goal)
+
+    return goals     
+
+goals = points_to_goals(obstacle_points)
 
 radius = 5
 
-unimproved_path = nearest_neighbour_optimized(start, points, radius)
-path = improve_path(unimproved_path, points, radius)
+unimproved_path = nearest_neighbour_optimized(start, goals, radius)
+path = improve_path(unimproved_path, goals, radius)
 
 print("Visit order:", path)
-print("Total length:", path_length(path, points, radius))
+print("Total length:", path_length(path, goals, radius))
 
 
