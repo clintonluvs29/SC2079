@@ -11,7 +11,7 @@ def LSL(alpha, beta, d):
     p = math.sqrt(p_sq)
     t = mod2pi(-alpha + math.atan2((math.cos(beta) - math.cos(alpha)), tmp))
     q = mod2pi(beta - math.atan2((math.cos(beta) - math.cos(alpha)), tmp))
-    return t + p + q
+    return t, p, q
 
 def RSR(alpha, beta, d):
     tmp = d - math.sin(alpha) + math.sin(beta)
@@ -21,7 +21,7 @@ def RSR(alpha, beta, d):
     p = math.sqrt(p_sq)
     t = mod2pi(alpha - math.atan2((math.cos(alpha) - math.cos(beta)), tmp))
     q = mod2pi(-beta + math.atan2((math.cos(alpha) - math.cos(beta)), tmp))
-    return t + p + q
+    return t, p, q
 
 def LSR(alpha, beta, d):
     p_sq = -2 + d*d + 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) + math.sin(beta))
@@ -32,7 +32,7 @@ def LSR(alpha, beta, d):
                      d + math.sin(alpha) + math.sin(beta))
     t = mod2pi(-alpha + tmp)
     q = mod2pi(-beta + tmp)
-    return t + p + q
+    return t, p, q
 
 def RSL(alpha, beta, d):
     p_sq = -2 + d*d + 2*math.cos(alpha - beta) - 2*d*(math.sin(alpha) + math.sin(beta))
@@ -43,7 +43,7 @@ def RSL(alpha, beta, d):
                      d - math.sin(alpha) - math.sin(beta))
     t = mod2pi(alpha - tmp)
     q = mod2pi(beta - tmp)
-    return t + p + q
+    return t, p, q
 
 def RLR(alpha, beta, d):
     tmp = (6 - d*d + 2*math.cos(alpha - beta) +
@@ -54,7 +54,7 @@ def RLR(alpha, beta, d):
     t = mod2pi(alpha - math.atan2(math.cos(alpha) - math.cos(beta),
                                   d - math.sin(alpha) + math.sin(beta)) + p/2)
     q = mod2pi(alpha - beta - t + p)
-    return t + p + q
+    return t, p, q
 
 def LRL(alpha, beta, d):
     tmp = (6 - d*d + 2*math.cos(alpha - beta) +
@@ -65,7 +65,7 @@ def LRL(alpha, beta, d):
     t = mod2pi(-alpha - math.atan2(math.cos(alpha) - math.cos(beta),
                                    d + math.sin(alpha) - math.sin(beta)) + p/2)
     q = mod2pi(beta - alpha - t + p)
-    return t + p + q
+    return t, p, q
 
 def dubins_distance(q0, q1, R):
     """
@@ -81,13 +81,25 @@ def dubins_distance(q0, q1, R):
     alpha = mod2pi(q0[2] - theta)
     beta  = mod2pi(q1[2] - theta)
 
+    LSL = LSL(alpha, beta, d)
+    LSL_dist = LSL[0] + LSL[1] + LSL[2]
+    RSR = RSR(alpha, beta, d)
+    RSR_dist = RSR[0] + RSR[1] + RSR[2]
+    LSR = LSR(alpha, beta, d)
+    LSR_dist = LSR[0] + LSR[1] + LSR[2]
+    RSL = RSL(alpha, beta, d)
+    RSL_dist = RSL[0] + RSL[1] + RSL[2]
+    RLR = RLR(alpha, beta, d)
+    RLR_dist = RLR[0] + RLR[1] + RLR[2]
+    LRL = LRL(alpha, beta, d)
+    LRL_dist = LRL[0] + LRL[1] + LRL[2]
     paths = [
-        LSL(alpha, beta, d),
-        RSR(alpha, beta, d),
-        LSR(alpha, beta, d),
-        RSL(alpha, beta, d),
-        RLR(alpha, beta, d),
-        LRL(alpha, beta, d),
+        LSL_dist,
+        RSR_dist,
+        LSR_dist,
+        RSL_dist,
+        RLR_dist,
+        LRL_dist,
     ]
 
     valid_paths = [p for p in paths if p is not None]
@@ -162,6 +174,68 @@ def improve_path(path):
             swap(path, i, i + 1)
         else:
             best_length = new_length
+
+def dubins_shortest_path(q0, q1, R):
+    dx = q1[0] - q0[0]
+    dy = q1[1] - q0[1]
+    D = math.hypot(dx, dy)
+    d = D / R
+
+    theta = math.atan2(dy, dx)
+    alpha = mod2pi(q0[2] - theta)
+    beta  = mod2pi(q1[2] - theta)
+
+    candidates = {
+        "LSL": LSL(alpha, beta, d),
+        "RSR": RSR(alpha, beta, d),
+        "LSR": LSR(alpha, beta, d),
+        "RSL": RSL(alpha, beta, d),
+        "RLR": RLR(alpha, beta, d),
+        "LRL": LRL(alpha, beta, d),
+    }
+
+    best_type = None
+    best_length = float("inf")
+    best_segments = None
+
+    for path_type, segs in candidates.items():
+        if segs is None:
+            continue
+        length = sum(segs)
+        if length < best_length:
+            best_length = length
+            best_type = path_type
+            best_segments = segs
+
+    return best_type, best_segments
+
+def segments_to_commands(path_type, segments, R):
+    commands = []
+    types = list(path_type)  # e.g. ['L','S','L']
+
+    for motion, length in zip(types, segments):
+        if motion == "S":
+            dist = length * R
+            commands.append(("S", dist))
+        else:
+            arc = length * R
+            commands.append((motion, arc))
+
+    return commands
+
+#example of how to run
+"""
+q0 = (0.0, 0.0, 0.0)
+q1 = (5.0, 3.0, math.pi/2)
+R = 1.0  # meters
+
+path_type, segments = dubins_shortest_path(q0, q1, R)
+commands = segments_to_commands(path_type, segments, R)
+
+print("Dubins type:", path_type)
+for cmd in commands:
+    print(cmd)
+"""
 
 start = (0,0)
 points = []
