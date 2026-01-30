@@ -81,30 +81,19 @@ def dubins_distance(q0, q1, R):
     alpha = mod2pi(q0[2] - theta)
     beta  = mod2pi(q1[2] - theta)
 
-    LSL = LSL(alpha, beta, d)
-    LSL_dist = LSL[0] + LSL[1] + LSL[2]
-    RSR = RSR(alpha, beta, d)
-    RSR_dist = RSR[0] + RSR[1] + RSR[2]
-    LSR = LSR(alpha, beta, d)
-    LSR_dist = LSR[0] + LSR[1] + LSR[2]
-    RSL = RSL(alpha, beta, d)
-    RSL_dist = RSL[0] + RSL[1] + RSL[2]
-    RLR = RLR(alpha, beta, d)
-    RLR_dist = RLR[0] + RLR[1] + RLR[2]
-    LRL = LRL(alpha, beta, d)
-    LRL_dist = LRL[0] + LRL[1] + LRL[2]
-    paths = [
-        LSL_dist,
-        RSR_dist,
-        LSR_dist,
-        RSL_dist,
-        RLR_dist,
-        LRL_dist,
-    ]
+    path_fns = [LSL, RSR, LSR, RSL, RLR, LRL]
+    lengths = []
 
-    valid_paths = [p for p in paths if p is not None]
+    for fn in path_fns:
+        path = fn(alpha, beta, d)
+        if path is not None:
+            t, p, q = path
+            lengths.append(t + p + q)
 
-    return min(valid_paths) * R
+    if not lengths:
+        return None  # no feasible Dubins path
+
+    return min(lengths) * R
 
 def euclidean(p, q):
     return math.hypot(p[0] - q[0], p[1] - q[1])
