@@ -1,5 +1,8 @@
 import math
 
+X_MIN, X_MAX = 0.0, 200.0
+Y_MIN, Y_MAX = 0.0, 200.0
+
 def mod2pi(theta):
     return theta - 2.0 * math.pi * math.floor(theta / (2.0 * math.pi))
 
@@ -129,7 +132,14 @@ def nearest_neighbour_optimized(start, points, R):
             if e_dist >= best_dubins:
                 break
 
-            d_dist = dubins_distance(v, w, R)  # expensive
+            obstacles = build_obstacles(points)
+
+            path = dubins_path_collision_free(points[v], points[w], R, obstacles)
+            if path is None:
+                continue  # invalid edge
+            
+            d_dist = path[2]
+
             if d_dist < best_dubins:
                 best_dubins = d_dist
                 best_w = w
@@ -143,26 +153,31 @@ def nearest_neighbour_optimized(start, points, R):
 def swap(path, i, j):
     path[i], path[j] = path[j], path[i]
 
-def path_length(path):
+def path_length(path, points, R):
     total = 0.0
     for i in range(len(path) - 1):
-        total += distance(path[i], path[i + 1])
+        total += dubins_distance(points[path[i]], points[path[i+1]], R)
     return total
 
-def improve_path(path):
-    best_length = path_length(path)
+def improve_path(path, points, R):
+    best_length = path_length(path, points, R)
 
     for i in range(1, len(path) - 1):
-        # swap adjacent vertices
         swap(path, i, i + 1)
+        new_length = path_length(path, points, R)
 
-        new_length = path_length(path)
-
-        # undo swap if it’s not better
         if new_length >= best_length:
             swap(path, i, i + 1)
         else:
             best_length = new_length
+
+    return path
+
+def path_within_bounds(points, xmin, xmax, ymin, ymax):
+    for x, y in points:
+        if not (xmin <= x <= xmax and ymin <= y <= ymax):
+            return False
+    return True
 
 def dubins_shortest_path(q0, q1, R):
     dx = q1[0] - q0[0]
@@ -212,6 +227,85 @@ def segments_to_commands(path_type, segments, R):
 
     return commands
 
+def sample_dubins_path(q0, path_type, segments, R, step=0.5):
+    x, y, theta = q0
+    points = [(x, y)]
+
+    for motion, seg in zip(path_type, segments):
+        length = seg * R
+
+        traveled = 0.0
+        while traveled < length:
+            ds = min(step, length - traveled)
+
+            if motion == "S":
+                x += ds * math.cos(theta)
+                y += ds * math.sin(theta)
+
+            elif motion == "L":
+                dtheta = ds / R
+                theta += dtheta
+                x += R * (math.sin(theta) - math.sin(theta - dtheta))
+                y -= R * (math.cos(theta) - math.cos(theta - dtheta))
+
+            elif motion == "R":
+                dtheta = ds / R
+                theta -= dtheta
+                x += R * (math.sin(theta) - math.sin(theta + dtheta))
+                y -= R * (math.cos(theta) - math.cos(theta + dtheta))
+
+            traveled += ds
+            points.append((x, y))
+
+    return points
+
+def dubins_shortest_path_bounded(q0, q1, R):
+    path_type, segments = dubins_shortest_path(q0, q1, R)
+    if path_type is None:
+        return None
+
+    samples = sample_dubins_path(q0, path_type, segments, R)
+
+    if not path_within_bounds(samples, 0, 200, 0, 200):
+        return None
+
+    return path_type, segments
+
+def build_obstacles(points):
+    obstacles = []
+    for x, y, _ in points:
+        obstacles.append((
+            x - 15,  # xmin
+            x + 25,  # xmax
+            y - 15,  # ymin
+            y + 25   # ymax
+        ))
+    return obstacles
+++++++++++++++++++++++++++++
+
+def point_in_rect(x, y, rect):
+    xmin, xmax, ymin, ymax = rect
+    return xmin <= x <= xmax and ymin <= y <= ymax
+
+def path_collides(points, obstacles):
+    for x, y in points:
+        for obs in obstacles:
+            if point_in_rect(x, y, obs):
+                return True
+    return False
+
+def dubins_path_collision_free(q0, q1, R, obstacles):
+    path_type, segments, length = dubins_shortest_path(q0, q1, R)
+    if path_type is None:
+        return None
+
+    samples = sample_dubins_path(q0, path_type, segments, R)
+
+    if path_collides(samples, obstacles):
+        return None
+
+    return path_type, segments, length
+
 #example of how to run
 """
 q0 = (0.0, 0.0, 0.0)
@@ -226,8 +320,19 @@ for cmd in commands:
     print(cmd)
 """
 
-start = (0,0)
-points = []
+start = 0
+points = [
+    (50, 50, 0.0),
+    (120, 80, math.pi/2),
+    (180, 40, math.pi),
+]
+
 radius = 5
+
 unimproved_path = nearest_neighbour_optimized(start, points, radius)
-path = improve_path(unimproved_path)
+path = improve_path(unimproved_path, points, radius)
+
+print("Visit order:", path)
+print("Total length:", path_length(path, points, radius))
+
+
