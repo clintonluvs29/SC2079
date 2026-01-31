@@ -1,0 +1,36 @@
+d1 = value
+d2 = value
+rounding radius = value
+d3 = 60-150cm
+d4 = 60-150cm
+
+move car straight, 10/15cm from obstacle
+#---image recogition---# 
+if ("L") 
+  move car left by d1/2
+  turn right 180 degrees
+  move car right by d1/2
+if ("R") 
+  move car right by d1/2
+  turn left 180 degrees
+  move car left by d1/2
+
+ensure car forward facing, 10/15cm from obstacle
+#---image recogition---#
+if ("L") 
+  move car left by d2/2
+  turn right 180 degrees
+  move car right by d2/2
+  continue right by max(d1/2, d2/2)
+  turn right by d3 + d4
+  turn right by max(d1/2, d2/2)
+  turn left and head into carpark
+
+if ("R") 
+  move car right by d2/2
+  turn left 180 degrees
+  move car left by d2/2
+  continue left by max(d1/2, d2/2)
+  turn left by d3 + d4
+  turn left by max(d1/2, d2/2)
+  turn right and head into carpark
