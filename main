@@ -11,6 +11,10 @@ def mod2pi(theta):
 def euclidean(p, q):
     return math.hypot(p[0] - q[0], p[1] - q[1])
 
+def within_bounds(x, y):
+    """Check if a point is within the defined boundaries"""
+    return X_MIN <= x <= X_MAX and Y_MIN <= y <= Y_MAX
+
 # --------------------- Dubins Path Types --------------------- #
 def LSL(alpha, beta, d):
     tmp = d + math.sin(alpha) - math.sin(beta)
@@ -148,14 +152,27 @@ def path_collides(points, obstacles):
                 return True
     return False
 
-def dubins_path_collision_free(q0, q1, R, obstacles):
+def path_out_of_bounds(points):
+    """Check if any sampled point in the path is outside boundaries"""
+    for x, y in points:
+        if not within_bounds(x, y):
+            return True
+    return False
+
+def dubins_path_valid(q0, q1, R, obstacles):
+    """Check if Dubins path is collision-free AND within boundaries"""
     path_type, segments = dubins_shortest_path(q0, q1, R)
     if path_type is None:
         return None
     length = sum(segments) * R
     samples = sample_dubins_path(q0, path_type, segments, R)
+    
+    # Check both collisions and boundaries
     if path_collides(samples, obstacles):
         return None
+    if path_out_of_bounds(samples):
+        return None
+    
     return path_type, segments, length
 
 # --------------------- TSP Heuristics --------------------- #
@@ -175,7 +192,7 @@ def nearest_neighbour_optimized(start, points, R):
         for e_dist, w in candidates:
             if e_dist >= best_dubins: break
             obstacles = build_obstacles([points[i] for i in range(n) if i not in (v, w)])
-            edge = dubins_path_collision_free(points[v], points[w], R, obstacles)
+            edge = dubins_path_valid(points[v], points[w], R, obstacles)
             if edge is None: continue
             d_dist = edge[2]
             if d_dist < best_dubins:
@@ -183,7 +200,7 @@ def nearest_neighbour_optimized(start, points, R):
                 best_w = w
 
         if best_w is None:
-            raise RuntimeError(f"No collision-free Dubins edge from node {v}")
+            raise RuntimeError(f"No valid Dubins edge from node {v} (collision or out of bounds)")
 
         path.append(best_w)
         visited[best_w] = True
@@ -197,7 +214,7 @@ def path_length(path, points, R):
     total = 0.0
     for i in range(len(path)-1):
         obstacles = build_obstacles([points[k] for k in range(len(points)) if k not in (path[i], path[i+1])])
-        edge = dubins_path_collision_free(points[path[i]], points[path[i+1]], R, obstacles)
+        edge = dubins_path_valid(points[path[i]], points[path[i+1]], R, obstacles)
         if edge is None: return float("inf")
         total += edge[2]
     return total
@@ -268,6 +285,20 @@ def flattened_dubins_commands(path, goals, R):
 
     return all_commands
 
+# --------------------- Boundary-aware goal validation --------------------- #
+def validate_goals_within_bounds(goals):
+    """Ensure all goal points are within the defined boundaries"""
+    valid_goals = []
+    for i, (x, y, theta) in enumerate(goals):
+        if not within_bounds(x, y):
+            print(f"Warning: Goal {i} at ({x}, {y}) is outside boundaries")
+            # Adjust goal to be within bounds
+            x = max(X_MIN + 5, min(X_MAX - 5, x))
+            y = max(Y_MIN + 5, min(Y_MAX - 5, y))
+            print(f"  Adjusted to ({x}, {y})")
+        valid_goals.append((x, y, theta))
+    return valid_goals
+
 # --------------------- Example Run --------------------- #
 start = 0
 obstacle_points = [
@@ -277,6 +308,7 @@ obstacle_points = [
 ]
 
 goals = points_to_goals(obstacle_points)
+goals = validate_goals_within_bounds(goals)  # Validate and adjust if needed
 radius = 5
 
 unimproved_path = nearest_neighbour_optimized(start, goals, radius)
@@ -289,3 +321,6 @@ print("Full sequential Dubins commands:")
 for cmd in full_commands:
     print(cmd)
 
+# Print boundary information
+print(f"\nBoundaries: X=[{X_MIN}, {X_MAX}], Y=[{Y_MIN}, {Y_MAX}]")
+print(f"All generated paths should stay within these boundaries.")
