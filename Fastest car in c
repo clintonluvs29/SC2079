@@ -1,0 +1,122 @@
+#include <stdio.h>
+#include <math.h>
+
+#define PI 3.141592653589793
+#define MAX_COMMANDS 100
+
+typedef struct {
+    char action;   // 'F', 'L', 'R'
+    int value;   // distance or arc length (cm)
+} Command;
+
+char detect_direction(void);
+
+int generate_parking_commands(
+    float d1, float d2, float r,
+    float d3, float d4,
+    Command commands[]
+);
+
+int main(void) {
+    Command commands[MAX_COMMANDS];
+
+    int n = generate_parking_commands(
+        40,  // d1
+        50,  // d2
+        30,  // r
+        90,  // d3
+        60,  // d4
+        commands
+    );
+
+    for (int i = 0; i < n; i++) {
+        printf("(%c, %d)\n", commands[i].action, commands[i].value);
+    }
+
+    return 0;
+}
+
+char detect_direction(void) {
+    return 'L';   // or 'R'
+}
+
+int generate_parking_commands(
+    float d1, float d2, float r,
+    float d3, float d4,
+    Command commands[]
+) {
+    int count = 0;
+
+    // Helper macro to append commands
+    #define CMD(a, v) \
+        do { \
+            commands[count].action = (a); \
+            commands[count].value = (int)lroundf(v); \
+            count++; \
+        } while (0)
+
+    // ============================================================
+    // Step 1: Move straight, maintain distance from obstacle
+    // ============================================================
+    CMD('F', d3 + 45);
+
+    char direction = detect_direction();
+
+    if (direction == 'L') {
+        CMD('L', r * PI / 2);
+        CMD('F', d1 / 2);
+        CMD('R', r * PI);
+        CMD('F', d1 / 2);
+        CMD('L', r * PI / 2);
+    }
+    else if (direction == 'R') {
+        CMD('R', r * PI / 2);
+        CMD('F', d1 / 2);
+        CMD('L', r * PI);
+        CMD('F', d1 / 2);
+        CMD('R', r * PI / 2);
+    }
+
+    // ============================================================
+    // Step 2: Ensure car is forward-facing and positioned correctly
+    // ============================================================
+    CMD('F', d4 - 15);
+
+    direction = detect_direction();
+    float offset = (d1 > d2) ? (d1 / 2) : (d2 / 2);
+
+    if (direction == 'L') {
+        CMD('L', r * PI / 2);
+        CMD('F', d2 / 2);
+        CMD('R', r * PI);
+        CMD('F', d2 / 2);
+
+        CMD('F', offset);
+        CMD('R', r * PI / 2);
+        CMD('F', d3 + d4);
+        CMD('R', r * PI / 2);
+        CMD('F', offset);
+
+        CMD('L', r * PI / 2);
+        CMD('F', 60);
+    }
+    else if (direction == 'R') {
+        CMD('R', r * PI / 2);
+        CMD('F', d2 / 2);
+        CMD('L', r * PI);
+        CMD('F', d2 / 2);
+
+        CMD('F', offset);
+        CMD('L', r * PI / 2);
+        CMD('F', d3 + d4);
+        CMD('L', r * PI / 2);
+        CMD('F', offset);
+
+        CMD('R', r * PI / 2);
+        CMD('F', 60);
+    }
+
+    return count;   // number of commands generated
+}
+
+#undef CMD
