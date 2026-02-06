@@ -34,3 +34,81 @@ if ("R")
   turn left by d3 + d4
   turn left by max(d1/2, d2/2)
   turn right and head into carpark
+
+def generate_parking_commands(
+    d1, d2, rounding_radius, d3, d4,
+    obstacle_distance,
+    detect_direction
+):
+    commands = []
+
+    # Helper to append commands
+    def cmd(action, value):
+        commands.append((action, value))
+
+    # ============================================================
+    # Step 1: Move straight, maintain distance from obstacle
+    # ============================================================
+    cmd("N", obstacle_distance)
+
+    direction = detect_direction()
+
+    if direction == "L":
+        cmd("move_left", d1 / 2)
+        cmd("turn_right", 180)
+        cmd("move_right", d1 / 2)
+
+    elif direction == "R":
+        cmd("move_right", d1 / 2)
+        cmd("turn_left", 180)
+        cmd("move_left", d1 / 2)
+
+    # ============================================================
+    # Step 2: Ensure car is forward-facing and positioned correctly
+    # ============================================================
+    cmd("move_forward", obstacle_distance)
+
+    direction = detect_direction()
+    offset = max(d1 / 2, d2 / 2)
+
+    if direction == "L":
+        cmd("move_left", d2 / 2)
+        cmd("turn_right", 180)
+        cmd("move_right", d2 / 2)
+
+        cmd("move_right", offset)
+        cmd("turn_right", d3 + d4)
+        cmd("move_right", offset)
+
+        cmd("turn_left", 90)
+        cmd("move_forward", rounding_radius)
+
+    elif direction == "R":
+        cmd("move_right", d2 / 2)
+        cmd("turn_left", 180)
+        cmd("move_left", d2 / 2)
+
+        cmd("move_left", offset)
+        cmd("turn_left", d3 + d4)
+        cmd("move_left", offset)
+
+        cmd("turn_right", 90)
+        cmd("move_forward", rounding_radius)
+
+    return commands
+
+def detect_direction():
+    return "L"  # or "R"
+
+commands = generate_parking_commands(
+    d1=40,
+    d2=50,
+    rounding_radius=30,
+    d3=90,
+    d4=60,
+    obstacle_distance=15,
+    detect_direction=detect_direction
+)
+
+for c in commands:
+    print(c)
