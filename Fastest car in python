@@ -1,43 +1,14 @@
-d1 = value
-d2 = value
-rounding radius = value
-d3 = 60-150cm
-d4 = 60-150cm
+#length of 1st obstacle d1 = value
+#length of 2nd obstacle d2 = value
+#rounding radius = value
+#distance to first obstacle d3 = 60-150cm
+#distance to second obstacle d4 = 60-150cm
 
-move car straight, 10/15cm from obstacle
-#---image recogition---# 
-if ("L") 
-  move car left by d1/2
-  turn right 180 degrees
-  move car right by d1/2
-if ("R") 
-  move car right by d1/2
-  turn left 180 degrees
-  move car left by d1/2
-
-ensure car forward facing, 10/15cm from obstacle
-#---image recogition---#
-if ("L") 
-  move car left by d2/2
-  turn right 180 degrees
-  move car right by d2/2
-  continue right by max(d1/2, d2/2)
-  turn right by d3 + d4
-  turn right by max(d1/2, d2/2)
-  turn left and head into carpark
-
-if ("R") 
-  move car right by d2/2
-  turn left 180 degrees
-  move car left by d2/2
-  continue left by max(d1/2, d2/2)
-  turn left by d3 + d4
-  turn left by max(d1/2, d2/2)
-  turn right and head into carpark
+import math
+PI = math.pi
 
 def generate_parking_commands(
-    d1, d2, rounding_radius, d3, d4,
-    obstacle_distance,
+    d1, d2, r, d3, d4,
     detect_direction
 ):
     commands = []
@@ -49,51 +20,61 @@ def generate_parking_commands(
     # ============================================================
     # Step 1: Move straight, maintain distance from obstacle
     # ============================================================
-    cmd("N", obstacle_distance)
+    cmd("F", d3+45)
 
     direction = detect_direction()
 
     if direction == "L":
-        cmd("move_left", d1 / 2)
-        cmd("turn_right", 180)
-        cmd("move_right", d1 / 2)
+        cmd("L", r*PI/2)
+        cmd("F", d1 / 2)
+        cmd("R", r*PI)
+        cmd("F", d1 / 2)
+        cmd("L", r*PI/2)
 
     elif direction == "R":
-        cmd("move_right", d1 / 2)
-        cmd("turn_left", 180)
-        cmd("move_left", d1 / 2)
+        cmd("R", r*PI/2)
+        cmd("F", d1 / 2)
+        cmd("L", r*PI)
+        cmd("F", d1 / 2)
+        cmd("R", r*PI/2)
 
     # ============================================================
     # Step 2: Ensure car is forward-facing and positioned correctly
     # ============================================================
-    cmd("move_forward", obstacle_distance)
+    cmd("F", d4-15)
 
     direction = detect_direction()
     offset = max(d1 / 2, d2 / 2)
 
     if direction == "L":
-        cmd("move_left", d2 / 2)
-        cmd("turn_right", 180)
-        cmd("move_right", d2 / 2)
+        cmd("L", r*PI/2)
+        cmd("F", d2 / 2)
+        cmd("R", r*PI)
+        cmd("F", d2 / 2)
 
-        cmd("move_right", offset)
-        cmd("turn_right", d3 + d4)
-        cmd("move_right", offset)
+        cmd("F", offset)
+        cmd("R", r*PI/2)
+        cmd("F", d3 + d4)
+        cmd("R", r*PI/2)
+        cmd("F", offset)
 
-        cmd("turn_left", 90)
-        cmd("move_forward", rounding_radius)
+        cmd("L", r*PI/2)
+        cmd("F", 60)
 
     elif direction == "R":
-        cmd("move_right", d2 / 2)
-        cmd("turn_left", 180)
-        cmd("move_left", d2 / 2)
+        cmd("R", r*PI/2)
+        cmd("F", d2 / 2)
+        cmd("L", r*PI)
+        cmd("F", d2 / 2)
 
-        cmd("move_left", offset)
-        cmd("turn_left", d3 + d4)
-        cmd("move_left", offset)
+        cmd("F", offset)
+        cmd("L", r*PI/2)
+        cmd("F", d3 + d4)
+        cmd("L", r*PI/2)
+        cmd("F", offset)
 
-        cmd("turn_right", 90)
-        cmd("move_forward", rounding_radius)
+        cmd("R", r*PI/2)
+        cmd("F", 60)
 
     return commands
 
@@ -103,10 +84,9 @@ def detect_direction():
 commands = generate_parking_commands(
     d1=40,
     d2=50,
-    rounding_radius=30,
+    r=30,
     d3=90,
     d4=60,
-    obstacle_distance=15,
     detect_direction=detect_direction
 )
 
