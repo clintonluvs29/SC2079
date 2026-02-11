@@ -95,14 +95,21 @@ def iterative_dubins_step(current_pose, remaining_goals, R, edge_cache):
     return commands, remaining_goals
 
 remaining_goals = [goals[i] for i in path]
+
 while remaining_goals:
-    current_pose = get_robot_pose()   # from localization
+    current_pose = get_robot_pose()  # from localization
+
     commands, remaining_goals = iterative_dubins_step(
         current_pose,
         remaining_goals,
         radius,
         edge_cache
     )
+
     if commands is None:
         break
-    send_commands_to_robot(commands)
+
+    # Send only the first command
+    first_command = commands[0]
+    send_commands_to_robot([first_command])
+
