@@ -1,13 +1,18 @@
 ## SC2079 MDP (Algorithm team)
 main/main in c - main code for image recognition task
+
 fastest car/fastest car in c - main code for fastest car task
 
 change segments_to_commands: code to convert cmds into "LEFT", degrees format instead of the old "L", arc length format
 
 ### further improvements (to be made and stored in 'main edited'): 
+
 In: def full_dubins_commands(path, goals, R):
+
 Replace: path_type, segments = dubins_shortest_path(q0, q1, R)
+
 With:
+
 obstacles = build_obstacles(
     [goals[k] for k in range(len(goals)) if k not in (path[i], path[i+1])]
 )
@@ -17,9 +22,13 @@ if edge is None:
 path_type, segments, _ = edge
 #### Do this in both:
 full_dubins_commands
+
 flattened_dubins_commands
 #### ----
-before TSP: edge_cache = {}
+before TSP: 
+
+edge_cache = {}
+
 def get_edge(i, j, goals, R, edge_cache):
     if (i, j) in edge_cache:
         return edge_cache[(i, j)]
@@ -32,10 +41,19 @@ def get_edge(i, j, goals, R, edge_cache):
 
     edge_cache[(i, j)] = result
     return result
-Then replace edge = dubins_path_valid(points[v], points[w], R, obstacles) with edge = get_edge(v, w, points, R, edge_cache)
+    
+Then replace 
+
+edge = dubins_path_valid(points[v], points[w], R, obstacles) 
+
+with 
+
+edge = get_edge(v, w, points, R, edge_cache)
+
 Do this in: nearest_neighbour_optimized, path_length, improve_path
 #### -----
 Iterative instead of one-off:
+
 Instead of flattened_dubins_commands we create next_commands(current_pose, remaining_goals, R)
 
 def goal_reached(current_pose, goal, pos_tol=2.0, angle_tol_deg=10):
