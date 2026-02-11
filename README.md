@@ -1,18 +1,17 @@
 ## SC2079 MDP (Algorithm team)
 main/main in c - main code for image recognition task
 
-fastest car/fastest car in c - main code for fastest car task
+fastest car in python/fastest car in c - main code for fastest car task
 
 change segments_to_commands: code to convert cmds into "LEFT", degrees format instead of the old "L", arc length format
 
 ### further improvements (to be made and stored in 'main edited'): 
-
+#### switch to edit mode to read code
 In: def full_dubins_commands(path, goals, R):
 
 Replace: path_type, segments = dubins_shortest_path(q0, q1, R)
 
 With:
-
 obstacles = build_obstacles(
     [goals[k] for k in range(len(goals)) if k not in (path[i], path[i+1])]
 )
