@@ -1,0 +1,20 @@
+def segments_to_commands(path_type, segments, R):
+    commands = []
+
+    for motion, length in zip(path_type, segments):
+        dist = length * R  # arc length or straight distance
+
+        if motion == "L":
+            angle_rad = dist / R
+            angle_deg = math.degrees(angle_rad)
+            commands.append(("LEFT", angle_deg))
+
+        elif motion == "R":
+            angle_rad = dist / R
+            angle_deg = math.degrees(angle_rad)
+            commands.append(("RIGHT", angle_deg))
+
+        elif motion == "S":
+            commands.append(("FORWARD", dist))
+
+    return commands
