@@ -6,19 +6,23 @@ fastest car in python/fastest car in c - main code for fastest car task
 change segments_to_commands: code to convert cmds into "LEFT", degrees format instead of the old "L", arc length format
 
 ### further improvements (to be made and stored in 'main edited'): 
-#### switch to edit mode to read code
 In: def full_dubins_commands(path, goals, R):
 
 Replace: path_type, segments = dubins_shortest_path(q0, q1, R)
 
 With:
+
 obstacles = build_obstacles(
     [goals[k] for k in range(len(goals)) if k not in (path[i], path[i+1])]
 )
+
 edge = dubins_path_valid(q0, q1, R, obstacles)
+
 if edge is None:
     raise RuntimeError(f"No valid Dubins path between {q0} and {q1}")
+    
 path_type, segments, _ = edge
+
 #### Do this in both:
 full_dubins_commands
 
@@ -29,6 +33,7 @@ before TSP:
 edge_cache = {}
 
 def get_edge(i, j, goals, R, edge_cache):
+
     if (i, j) in edge_cache:
         return edge_cache[(i, j)]
 
