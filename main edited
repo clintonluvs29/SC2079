@@ -123,7 +123,7 @@ def segments_to_commands(path_type, segments, R):
 
     return commands
 
-def sample_dubins_path_pose(q0, path_type, segments, R, step=5.0):
+def sample_dubins_path_pose(q0, path_type, segments, R, step=1.0):
     x, y, theta = q0
     samples = [(x, y, theta)]
 
@@ -140,15 +140,21 @@ def sample_dubins_path_pose(q0, path_type, segments, R, step=5.0):
 
             elif motion == "L":
                 dtheta = ds / R
+                # Store the starting theta for this step
+                theta_start = theta
                 theta += dtheta
-                x += R * (math.sin(theta) - math.sin(theta - dtheta))
-                y -= R * (math.cos(theta) - math.cos(theta - dtheta))
+                # Correct formula: turning left (positive curvature)
+                x += R * (math.sin(theta) - math.sin(theta_start))
+                y -= R * (math.cos(theta) - math.cos(theta_start))
 
             elif motion == "R":
                 dtheta = ds / R
+                # Store the starting theta for this step
+                theta_start = theta
                 theta -= dtheta
-                x += R * (math.sin(theta) - math.sin(theta + dtheta))
-                y -= R * (math.cos(theta) - math.cos(theta + dtheta))
+                # Correct formula: turning right (negative curvature)
+                x += R * (math.sin(theta_start) - math.sin(theta))
+                y += R * (math.cos(theta) - math.cos(theta_start))
 
             traveled += ds
             samples.append((x, y, theta))
@@ -243,7 +249,7 @@ def swap(path, i, j):
 def path_length(path, points, R):
     total = 0.0
     for i in range(len(path)-1):
-        edge = get_edge(path[i], path[i+1], points, R, edge_cache)
+        edge = get_edge(path[i], path[i+1], goals, R, edge_cache)
         if edge is None: return float("inf")
         total += edge[2]
     return total
@@ -275,30 +281,6 @@ def points_to_goals(points):
             raise ValueError(f"Unknown direction: {direction}")
         goals.append(goal)
     return goals
-
-# --------------------- Generate Full Dubins Commands --------------------- #
-def full_dubins_commands(path, goals, R):
-    commands_list = []
-
-    for i in range(len(path) - 1):
-        q0 = goals[path[i]]
-        q1 = goals[path[i+1]]
-
-        edge = dubins_path_valid(q0, q1, R, OBSTACLES)
-        
-        if edge is None:
-            raise RuntimeError(f"No valid Dubins path between {q0} and {q1}")
-            
-        path_type, segments, _ = edge
-
-        commands = segments_to_commands(path_type, segments, R)
-        commands_list.append({
-            "from": path[i],
-            "to": path[i+1],
-            "commands": commands
-        })
-
-    return commands_list
 
 # --------------------- Generate Flattened Dubins Commands --------------------- #
 def flattened_dubins_commands(path, goals, R, pause_ms=0):
@@ -340,18 +322,20 @@ def validate_goals_within_bounds(goals):
     return valid_goals
 
 # --------------------- Example Run --------------------- #
+# --------------------- Example Run --------------------- #
 START_POSE = (150, 150, math.pi/2)   # ← visible, collision-free
 obstacle_points = [
-    (600, 600, "S"),
-    (1200, 1200, "N"),
-    (1700, 600, "W")
+    # Four points in each quadrant, well away from boundaries
+    (500, 500, "N"),    # Bottom-left quadrant
+    (900, 900, "S"),    # Center area  
+    (700, 1300, "W"),   # Top area
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
 goals = [START_POSE] + points_to_goals(obstacle_points)
 start = 0
 goals = validate_goals_within_bounds(goals)  # Validate and adjust if needed
-radius = 100
+radius = 50
 edge_cache.clear()
 unimproved_path = nearest_neighbour_optimized(start, goals, radius)
 path = improve_path(unimproved_path, goals, radius)
