@@ -152,7 +152,7 @@ def sample_dubins_path(q0, path_type, segments, R, step=5.0):
 def build_obstacles(points):
     obstacles = []
     for x, y, _ in points:
-        obstacles.append((x-150, x+250, y-150, y+250))
+        obstacles.append((x-150, x+150, y-150, y+150))
     return obstacles
 
 def point_in_rect(x, y, rect):
