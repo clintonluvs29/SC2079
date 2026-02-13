@@ -1,5 +1,3 @@
-# ===================== SIMULATION ===================== #
-
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
@@ -44,9 +42,9 @@ def plot_environment(goals):
     for xmin, xmax, ymin, ymax in OBSTACLES:
         ax.add_patch(
             plt.Rectangle(
-                (xmin, ymin),
-                xmax - xmin,
-                ymax - ymin,
+                (xmin+100, ymin+100),
+                100,
+                100,
                 color='red',
                 alpha=0.3
             )
@@ -58,7 +56,7 @@ def plot_environment(goals):
         ax.text(x + 20, y + 20, f"{i}", fontsize=12)
 
         # Draw orientation arrow
-        arrow_length = 90
+        arrow_length = 100
         ax.arrow(
             x, y,
             arrow_length * math.cos(theta),
