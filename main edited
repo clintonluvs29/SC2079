@@ -226,7 +226,6 @@ def swap(path, i, j):
 def path_length(path, points, R):
     total = 0.0
     for i in range(len(path)-1):
-        obstacles = build_obstacles([points[k] for k in range(len(points)) if k not in (path[i], path[i+1])])
         edge = get_edge(path[i], path[i+1], points, R, edge_cache)
         if edge is None: return float("inf")
         total += edge[2]
