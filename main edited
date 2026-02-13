@@ -123,35 +123,42 @@ def segments_to_commands(path_type, segments, R):
 
     return commands
 
-def sample_dubins_path(q0, path_type, segments, R, step=5.0):
+def sample_dubins_path_pose(q0, path_type, segments, R, step=5.0):
     x, y, theta = q0
-    points = [(x, y)]
+    samples = [(x, y, theta)]
+
     for motion, seg in zip(path_type, segments):
         length = seg * R
         traveled = 0.0
+
         while traveled < length:
             ds = min(step, length - traveled)
+
             if motion == "S":
                 x += ds * math.cos(theta)
                 y += ds * math.sin(theta)
+
             elif motion == "L":
                 dtheta = ds / R
                 theta += dtheta
                 x += R * (math.sin(theta) - math.sin(theta - dtheta))
                 y -= R * (math.cos(theta) - math.cos(theta - dtheta))
+
             elif motion == "R":
                 dtheta = ds / R
                 theta -= dtheta
                 x += R * (math.sin(theta) - math.sin(theta + dtheta))
                 y -= R * (math.cos(theta) - math.cos(theta + dtheta))
+
             traveled += ds
-            points.append((x, y))
-    return points
+            samples.append((x, y, theta))
+
+    return samples
 
 # --------------------- Obstacles --------------------- #
-def build_obstacles(points):
+def build_obstacles(obstacle_points):
     obstacles = []
-    for x, y, _ in points:
+    for x, y, _ in obstacle_points:
         obstacles.append((x-150, x+150, y-150, y+150))
     return obstacles
 
@@ -345,14 +352,15 @@ def validate_goals_within_bounds(goals):
     return valid_goals
 
 # --------------------- Example Run --------------------- #
-start = 0
+START_POSE = (150, 150, 0.0)   # ← visible, collision-free
 obstacle_points = [
     (500, 500, "S"),
     (1200, 800, "N"),
     (1800, 400, "E")
 ]
 
-goals = points_to_goals(obstacle_points)
+goals = [START_POSE] + points_to_goals(obstacle_points)
+start = 0
 goals = validate_goals_within_bounds(goals)  # Validate and adjust if needed
 radius = 50
 edge_cache.clear()
