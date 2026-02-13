@@ -270,13 +270,13 @@ def points_to_goals(points):
     goals = []
     for x, y, direction in points:
         if direction == "N":
-            goal = (x+50, y+250, -math.pi/2)
+            goal = (x, y+250, -math.pi/2)
         elif direction == "S":
-            goal = (x-50, y-250, math.pi/2)
+            goal = (x, y-250, math.pi/2)
         elif direction == "W":
-            goal = (x-250, y+50, 0.0)
+            goal = (x-250, y, 0.0)
         elif direction == "E":
-            goal = (x+250, y-50, math.pi)
+            goal = (x+250, y, math.pi)
         else:
             raise ValueError(f"Unknown direction: {direction}")
         goals.append(goal)
