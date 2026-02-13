@@ -44,18 +44,19 @@ def LSR(alpha, beta, d):
     return t, p, q
 
 def RSL(alpha, beta, d):
-    p_sq = -2 + d*d + 2*math.cos(alpha - beta) - 2*d*(math.sin(alpha) + math.sin(beta))
+    p_sq = -2 + d*d + 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) + math.sin(beta))
     if p_sq < 0: return None
     p = math.sqrt(p_sq)
-    tmp = math.atan2(math.cos(alpha) + math.cos(beta), d - math.sin(alpha) - math.sin(beta))
+    tmp = math.atan2(math.cos(alpha) + math.cos(beta), d + math.sin(alpha) + math.sin(beta))
     t = mod2pi(alpha - tmp)
     q = mod2pi(beta - tmp)
     return t, p, q
 
+
 def RLR(alpha, beta, d):
     tmp = (6 - d*d + 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) - math.sin(beta))) / 8
     if abs(tmp) > 1: return None
-    p = mod2pi(2*math.pi - math.acos(tmp))
+    p = math.acos(tmp)  
     t = mod2pi(alpha - math.atan2(math.cos(alpha) - math.cos(beta), d - math.sin(alpha) + math.sin(beta)) + p/2)
     q = mod2pi(alpha - beta - t + p)
     return t, p, q
@@ -65,10 +66,11 @@ def LRL(alpha, beta, d):
     if abs(tmp) > 1: return None
     p = mod2pi(2*math.pi - math.acos(tmp))
     t = mod2pi(-alpha - math.atan2(math.cos(alpha) - math.cos(beta), d + math.sin(alpha) - math.sin(beta)) + p/2)
-    q = mod2pi(beta - alpha - t + p)
+    q = mod2pi(beta - alpha - t + p/2)
     return t, p, q
 
 # --------------------- Dubins Path Length --------------------- #
+"""
 def dubins_shortest_path(q0, q1, R):
     dx = q1[0] - q0[0]
     dy = q1[1] - q0[1]
@@ -101,27 +103,28 @@ def dubins_shortest_path(q0, q1, R):
             best_segments = segs
 
     return best_type, best_segments
-
-def segments_to_commands(path_type, segments, R):
+"""
+def segments_to_commands(path_type, segments, R, use_degrees=True):
     commands = []
 
-    for motion, length in zip(path_type, segments):
-        dist = length * R  # arc length or straight distance
+    for motion, seg in zip(path_type, segments):
+        dist = seg * R  # ✅ arc length or straight distance
 
         if motion == "L":
             angle_rad = dist / R
-            angle_deg = math.degrees(angle_rad)
-            commands.append(("LEFT", angle_deg))
+            angle_val = math.degrees(angle_rad) if use_degrees else angle_rad
+            commands.append(("LEFT", angle_val))
 
         elif motion == "R":
             angle_rad = dist / R
-            angle_deg = math.degrees(angle_rad)
-            commands.append(("RIGHT", angle_deg))
+            angle_val = math.degrees(angle_rad) if use_degrees else angle_rad
+            commands.append(("RIGHT", angle_val))
 
         elif motion == "S":
             commands.append(("FORWARD", dist))
 
     return commands
+
 
 def sample_dubins_path_pose(q0, path_type, segments, R, step=1.0):
     x, y, theta = q0
@@ -180,14 +183,12 @@ def path_collides(points, obstacles):
     return False
 
 def path_out_of_bounds(points):
-    """Check if any sampled point in the path is outside boundaries"""
     for x, y, theta in points:
         if not within_bounds(x, y):
             return True
     return False
-
+"""
 def dubins_path_valid(q0, q1, R, obstacles):
-    """Check if Dubins path is collision-free AND within boundaries"""
     path_type, segments = dubins_shortest_path(q0, q1, R)
     if path_type is None:
         return None
@@ -201,7 +202,46 @@ def dubins_path_valid(q0, q1, R, obstacles):
         return None
     
     return path_type, segments, length
+"""
+def dubins_path_valid(q0, q1, R, obstacles):
+    dx = q1[0] - q0[0]
+    dy = q1[1] - q0[1]
+    D = math.hypot(dx, dy)
+    d = D / R
 
+    theta = math.atan2(dy, dx)
+    alpha = mod2pi(q0[2] - theta)
+    beta  = mod2pi(q1[2] - theta)
+
+    candidates = {
+        "LSL": LSL(alpha, beta, d),
+        "RSR": RSR(alpha, beta, d),
+        "LSR": LSR(alpha, beta, d),
+        "RSL": RSL(alpha, beta, d),
+        "RLR": RLR(alpha, beta, d),
+        "LRL": LRL(alpha, beta, d),
+    }
+
+    best_type = None
+    best_segments = None
+    best_length = float("inf")
+    
+    for path_type, segments in candidates.items():
+        if segments is None:
+            continue
+        samples = sample_dubins_path_pose(q0, path_type, segments, R)
+        if path_collides(samples, obstacles):
+            continue
+        if path_out_of_bounds(samples):
+            continue
+        length = sum(segments)
+        if length < best_length:
+            best_length = length
+            best_type = path_type
+            best_segments = segments
+    
+    return best_type, best_segments, best_length
+    
 # --------------------- TSP Heuristics --------------------- #
 def get_edge(i, j, goals, R, edge_cache):
 
@@ -242,7 +282,7 @@ def nearest_neighbour_optimized(start, points, R):
         visited[best_w] = True
         v = best_w
     return path
-
+    
 def swap(path, i, j):
     path[i], path[j] = path[j], path[i]
 
@@ -270,13 +310,13 @@ def points_to_goals(points):
     goals = []
     for x, y, direction in points:
         if direction == "N":
-            goal = (x, y+250, -math.pi/2)
+            goal = (x, y+200, -math.pi/2)
         elif direction == "S":
-            goal = (x, y-250, math.pi/2)
+            goal = (x, y-200, math.pi/2)
         elif direction == "W":
-            goal = (x-250, y, 0.0)
+            goal = (x-200, y, 0.0)
         elif direction == "E":
-            goal = (x+250, y, math.pi)
+            goal = (x+200, y, math.pi)
         else:
             raise ValueError(f"Unknown direction: {direction}")
         goals.append(goal)
@@ -306,10 +346,10 @@ def flattened_dubins_commands(path, goals, R, pause_ms=0):
 
     return all_commands
 
-
+"""
 # --------------------- Boundary-aware goal validation --------------------- #
 def validate_goals_within_bounds(goals):
-    """Ensure all goal points are within the defined boundaries"""
+    #Ensure all goal points are within the defined boundaries
     valid_goals = []
     for i, (x, y, theta) in enumerate(goals):
         if not within_bounds(x, y):
@@ -319,23 +359,19 @@ def validate_goals_within_bounds(goals):
             y = max(Y_MIN + 50, min(Y_MAX - 50, y))
             print(f"  Adjusted to ({x}, {y})")
         valid_goals.append((x, y, theta))
-    return valid_goals
-
+    return valid_goals 
+"""
 # --------------------- Example Run --------------------- #
 # --------------------- Example Run --------------------- #
-START_POSE = (150, 150, math.pi/2)   # ← visible, collision-free
+START_POSE = (150, 150, math.pi/2)   
 obstacle_points = [
-    # Four points in each quadrant, well away from boundaries
-    (500, 500, "N"),    # Bottom-left quadrant
-    (700, 1300, "W"),   # Top area
-    (1800, 1800, "S"),   # Top area
+    (1700, 1700, "W")  # Top area
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
 goals = [START_POSE] + points_to_goals(obstacle_points)
 start = 0
-goals = validate_goals_within_bounds(goals)  # Validate and adjust if needed
-radius = 50
+radius = 400
 edge_cache.clear()
 unimproved_path = nearest_neighbour_optimized(start, goals, radius)
 path = improve_path(unimproved_path, goals, radius)
