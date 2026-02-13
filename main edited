@@ -1,8 +1,8 @@
 import math
 
 # --------------------- Constants --------------------- #
-X_MIN, X_MAX = 0.0, 200.0
-Y_MIN, Y_MAX = 0.0, 200.0
+X_MIN, X_MAX = 0.0, 2000.0
+Y_MIN, Y_MAX = 0.0, 2000.0
 edge_cache = {}
 # --------------------- Utility Functions --------------------- #
 def mod2pi(theta):
@@ -123,7 +123,7 @@ def segments_to_commands(path_type, segments, R):
 
     return commands
 
-def sample_dubins_path(q0, path_type, segments, R, step=0.5):
+def sample_dubins_path(q0, path_type, segments, R, step=5.0):
     x, y, theta = q0
     points = [(x, y)]
     for motion, seg in zip(path_type, segments):
@@ -152,7 +152,7 @@ def sample_dubins_path(q0, path_type, segments, R, step=0.5):
 def build_obstacles(points):
     obstacles = []
     for x, y, _ in points:
-        obstacles.append((x-15, x+25, y-15, y+25))
+        obstacles.append((x-150, x+250, y-150, y+250))
     return obstacles
 
 def point_in_rect(x, y, rect):
@@ -261,13 +261,13 @@ def points_to_goals(points):
     goals = []
     for x, y, direction in points:
         if direction == "N":
-            goal = (x+5, y+25, -math.pi/2)
+            goal = (x+50, y+250, -math.pi/2)
         elif direction == "S":
-            goal = (x-5, y-25, math.pi/2)
+            goal = (x-50, y-250, math.pi/2)
         elif direction == "W":
-            goal = (x-25, y+5, 0.0)
+            goal = (x-250, y+50, 0.0)
         elif direction == "E":
-            goal = (x+25, y-5, math.pi)
+            goal = (x+250, y-50, math.pi)
         else:
             raise ValueError(f"Unknown direction: {direction}")
         goals.append(goal)
@@ -338,8 +338,8 @@ def validate_goals_within_bounds(goals):
         if not within_bounds(x, y):
             print(f"Warning: Goal {i} at ({x}, {y}) is outside boundaries")
             # Adjust goal to be within bounds
-            x = max(X_MIN + 5, min(X_MAX - 5, x))
-            y = max(Y_MIN + 5, min(Y_MAX - 5, y))
+            x = max(X_MIN + 50, min(X_MAX - 50, x))
+            y = max(Y_MIN + 50, min(Y_MAX - 50, y))
             print(f"  Adjusted to ({x}, {y})")
         valid_goals.append((x, y, theta))
     return valid_goals
@@ -347,14 +347,14 @@ def validate_goals_within_bounds(goals):
 # --------------------- Example Run --------------------- #
 start = 0
 obstacle_points = [
-    (50, 50, "S"),
-    (120, 80, "N"),
-    (180, 40, "E")
+    (500, 500, "S"),
+    (1200, 800, "N"),
+    (1800, 400, "E")
 ]
 
 goals = points_to_goals(obstacle_points)
 goals = validate_goals_within_bounds(goals)  # Validate and adjust if needed
-radius = 5
+radius = 50
 edge_cache.clear()
 unimproved_path = nearest_neighbour_optimized(start, goals, radius)
 path = improve_path(unimproved_path, goals, radius)
