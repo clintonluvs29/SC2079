@@ -302,7 +302,7 @@ def full_dubins_commands(path, goals, R):
     return commands_list
 
 # --------------------- Generate Flattened Dubins Commands --------------------- #
-def flattened_dubins_commands(path, goals, R):
+def flattened_dubins_commands(path, goals, R, pause_ms=0):
     all_commands = []
 
     for i in range(len(path) - 1):
@@ -319,11 +319,16 @@ def flattened_dubins_commands(path, goals, R):
             raise RuntimeError(f"No valid Dubins path between {q0} and {q1}")
     
         path_type, segments, _ = edge
-
         commands = segments_to_commands(path_type, segments, R)
-        all_commands.extend(commands)  # Append commands sequentially
+
+        all_commands.extend(commands)
+
+        # Add pause after completing this Dubins segment
+        if pause_ms > 0:
+            all_commands.append(("Pu", pause_ms))
 
     return all_commands
+
 
 # --------------------- Boundary-aware goal validation --------------------- #
 def validate_goals_within_bounds(goals):
@@ -354,7 +359,7 @@ edge_cache.clear()
 unimproved_path = nearest_neighbour_optimized(start, goals, radius)
 path = improve_path(unimproved_path, goals, radius)
 
-full_commands = flattened_dubins_commands(path, goals, radius)
+full_commands = flattened_dubins_commands(path, goals, radius, pause_ms = 3000)
 
 # Print sequential commands for the entire tour
 print("Full sequential Dubins commands:")
