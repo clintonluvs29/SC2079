@@ -17,8 +17,9 @@ def generate_full_path_samples(path, goals, R):
         path_type, segments, _ = edge
         samples = sample_dubins_path_pose(q0, path_type, segments, R)
 
+        # ✅ CRITICAL FIX
         if i > 0:
-            samples = samples[1:]  # avoid duplicate point
+            samples = samples[1:]  # remove duplicate joint point
 
         full_samples.extend(samples)
 
@@ -41,9 +42,7 @@ def plot_environment(goals):
             'k-', linewidth=2)
 
     # Draw obstacles
-    obstacles = build_obstacles(goals)
-    for rect in obstacles:
-        xmin, xmax, ymin, ymax = rect
+    for xmin, xmax, ymin, ymax in OBSTACLES:
         ax.add_patch(
             plt.Rectangle(
                 (xmin, ymin),
