@@ -356,7 +356,7 @@ START_POSE = (150, 150, 0.0)   # ← visible, collision-free
 obstacle_points = [
     (500, 500, "S"),
     (1200, 800, "N"),
-    (1800, 400, "E")
+    (1700, 400, "E")
 ]
 
 goals = [START_POSE] + points_to_goals(obstacle_points)
