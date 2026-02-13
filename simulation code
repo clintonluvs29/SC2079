@@ -4,24 +4,21 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 def generate_full_path_samples(path, goals, R):
-    """Generate all sampled points along the full TSP-Dubins tour"""
     full_samples = []
 
     for i in range(len(path) - 1):
         q0 = goals[path[i]]
         q1 = goals[path[i + 1]]
 
-        obstacles = build_obstacles(
-            [goals[k] for k in range(len(goals)) if k not in (path[i], path[i+1])]
-        )
-
-        edge = dubins_path_valid(q0, q1, R, obstacles)
-
+        edge = dubins_path_valid(q0, q1, R, OBSTACLES)
         if edge is None:
-            raise RuntimeError("Invalid edge during simulation")
+            raise RuntimeError("Invalid Dubins edge")
 
         path_type, segments, _ = edge
-        samples = sample_dubins_path(q0, path_type, segments, R)
+        samples = sample_dubins_path_pose(q0, path_type, segments, R)
+
+        if i > 0:
+            samples = samples[1:]  # avoid duplicate point
 
         full_samples.extend(samples)
 
@@ -33,6 +30,10 @@ def plot_environment(goals):
     ax.set_xlim(X_MIN, X_MAX)
     ax.set_ylim(Y_MIN, Y_MAX)
     ax.set_aspect('equal')
+
+    sx, sy, st = goals[0]
+    ax.plot(sx, sy, 'gs', markersize=12)
+    ax.text(sx + 20, sy + 20, "START", fontsize=12, color='green')
 
     # Draw boundary
     ax.plot([X_MIN, X_MAX, X_MAX, X_MIN, X_MIN],
@@ -75,42 +76,21 @@ def animate_robot(samples, fig, ax):
     robot_dot, = ax.plot([], [], 'go', markersize=8)
     heading_line, = ax.plot([], [], 'g-', linewidth=2)
 
-    def init():
-        robot_dot.set_data([], [])
-        heading_line.set_data([], [])
-        return robot_dot, heading_line
-
-    def update(frame):
-        x, y = samples[frame]
-
+    def update(i):
+        x, y, theta = samples[i]
         robot_dot.set_data(x, y)
-
-        # Estimate heading using next sample
-        if frame < len(samples) - 1:
-            x2, y2 = samples[frame + 1]
-            theta = math.atan2(y2 - y, x2 - x)
-        else:
-            theta = 0
 
         hx = x + 120 * math.cos(theta)
         hy = y + 120 * math.sin(theta)
-
         heading_line.set_data([x, hx], [y, hy])
 
         return robot_dot, heading_line
 
     ani = animation.FuncAnimation(
-        fig,
-        update,
-        frames=len(samples),
-        init_func=init,
-        interval=20,
-        blit=True,
-        repeat=False
+        fig, update, frames=len(samples),
+        interval=20, blit=True, repeat=False
     )
-
     plt.show()
-
 
 # ===================== RUN SIMULATION ===================== #
 
