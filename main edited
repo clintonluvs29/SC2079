@@ -264,13 +264,13 @@ def points_to_goals(points):
     goals = []
     for x, y, direction in points:
         if direction == "N":
-            goal = (x+50, y+250, -math.pi/2)
+            goal = (x+50, y+250, math.pi/2)
         elif direction == "S":
-            goal = (x-50, y-250, math.pi/2)
+            goal = (x-50, y-250, -math.pi/2)
         elif direction == "W":
-            goal = (x-250, y+50, 0.0)
+            goal = (x-250, y+50, math.pi)
         elif direction == "E":
-            goal = (x+250, y-50, math.pi)
+            goal = (x+250, y-50, 0.0)
         else:
             raise ValueError(f"Unknown direction: {direction}")
         goals.append(goal)
@@ -340,7 +340,7 @@ def validate_goals_within_bounds(goals):
     return valid_goals
 
 # --------------------- Example Run --------------------- #
-START_POSE = (150, 150, 0.0)   
+START_POSE = (150, 150, math.pi/2)   # ← visible, collision-free
 obstacle_points = [
     (600, 600, "S"),
     (1200, 1200, "N"),
