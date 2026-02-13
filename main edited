@@ -327,8 +327,8 @@ START_POSE = (150, 150, math.pi/2)   # ← visible, collision-free
 obstacle_points = [
     # Four points in each quadrant, well away from boundaries
     (500, 500, "N"),    # Bottom-left quadrant
-    (900, 900, "S"),    # Center area  
     (700, 1300, "W"),   # Top area
+    (1800, 1800, "S"),   # Top area
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
