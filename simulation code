@@ -1,0 +1,128 @@
+# ===================== SIMULATION ===================== #
+
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
+def generate_full_path_samples(path, goals, R):
+    """Generate all sampled points along the full TSP-Dubins tour"""
+    full_samples = []
+
+    for i in range(len(path) - 1):
+        q0 = goals[path[i]]
+        q1 = goals[path[i + 1]]
+
+        obstacles = build_obstacles(
+            [goals[k] for k in range(len(goals)) if k not in (path[i], path[i+1])]
+        )
+
+        edge = dubins_path_valid(q0, q1, R, obstacles)
+
+        if edge is None:
+            raise RuntimeError("Invalid edge during simulation")
+
+        path_type, segments, _ = edge
+        samples = sample_dubins_path(q0, path_type, segments, R)
+
+        full_samples.extend(samples)
+
+    return full_samples
+
+
+def plot_environment(goals):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.set_xlim(X_MIN, X_MAX)
+    ax.set_ylim(Y_MIN, Y_MAX)
+    ax.set_aspect('equal')
+
+    # Draw boundary
+    ax.plot([X_MIN, X_MAX, X_MAX, X_MIN, X_MIN],
+            [Y_MIN, Y_MIN, Y_MAX, Y_MAX, Y_MIN],
+            'k-', linewidth=2)
+
+    # Draw obstacles
+    obstacles = build_obstacles(goals)
+    for rect in obstacles:
+        xmin, xmax, ymin, ymax = rect
+        ax.add_patch(
+            plt.Rectangle(
+                (xmin, ymin),
+                xmax - xmin,
+                ymax - ymin,
+                color='red',
+                alpha=0.3
+            )
+        )
+
+    # Draw goal points
+    for i, (x, y, theta) in enumerate(goals):
+        ax.plot(x, y, 'bo')
+        ax.text(x + 20, y + 20, f"{i}", fontsize=12)
+
+        # Draw orientation arrow
+        arrow_length = 120
+        ax.arrow(
+            x, y,
+            arrow_length * math.cos(theta),
+            arrow_length * math.sin(theta),
+            head_width=40,
+            color='blue'
+        )
+
+    return fig, ax
+
+
+def animate_robot(samples, fig, ax):
+    robot_dot, = ax.plot([], [], 'go', markersize=8)
+    heading_line, = ax.plot([], [], 'g-', linewidth=2)
+
+    def init():
+        robot_dot.set_data([], [])
+        heading_line.set_data([], [])
+        return robot_dot, heading_line
+
+    def update(frame):
+        x, y = samples[frame]
+
+        robot_dot.set_data(x, y)
+
+        # Estimate heading using next sample
+        if frame < len(samples) - 1:
+            x2, y2 = samples[frame + 1]
+            theta = math.atan2(y2 - y, x2 - x)
+        else:
+            theta = 0
+
+        hx = x + 120 * math.cos(theta)
+        hy = y + 120 * math.sin(theta)
+
+        heading_line.set_data([x, hx], [y, hy])
+
+        return robot_dot, heading_line
+
+    ani = animation.FuncAnimation(
+        fig,
+        update,
+        frames=len(samples),
+        init_func=init,
+        interval=20,
+        blit=True,
+        repeat=False
+    )
+
+    plt.show()
+
+
+# ===================== RUN SIMULATION ===================== #
+
+print("\nLaunching simulation...")
+
+samples = generate_full_path_samples(path, goals, radius)
+
+fig, ax = plot_environment(goals)
+
+# Draw entire Dubins path
+xs = [p[0] for p in samples]
+ys = [p[1] for p in samples]
+ax.plot(xs, ys, 'b-', linewidth=1)
+
+animate_robot(samples, fig, ax)
