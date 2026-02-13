@@ -202,11 +202,7 @@ def get_edge(i, j, goals, R, edge_cache):
     if (i, j) in edge_cache:
         return edge_cache[(i, j)]
 
-    obstacles = build_obstacles(
-        [goals[k] for k in range(len(goals)) if k not in (i, j)]
-    )
-
-    result = dubins_path_valid(goals[i], goals[j], R, obstacles)
+    result = dubins_path_valid(goals[i], goals[j], R, OBSTACLES)
 
     edge_cache[(i, j)] = result
     return result
@@ -288,11 +284,7 @@ def full_dubins_commands(path, goals, R):
         q0 = goals[path[i]]
         q1 = goals[path[i+1]]
 
-        obstacles = build_obstacles(
-            [goals[k] for k in range(len(goals)) if k not in (path[i], path[i+1])]
-        )
-        
-        edge = dubins_path_valid(q0, q1, R, obstacles)
+        edge = dubins_path_valid(q0, q1, R, OBSTACLES)
         
         if edge is None:
             raise RuntimeError(f"No valid Dubins path between {q0} and {q1}")
@@ -315,12 +307,8 @@ def flattened_dubins_commands(path, goals, R, pause_ms=0):
     for i in range(len(path) - 1):
         q0 = goals[path[i]]
         q1 = goals[path[i+1]]
-
-        obstacles = build_obstacles(
-            [goals[k] for k in range(len(goals)) if k not in (path[i], path[i+1])]
-        )
         
-        edge = dubins_path_valid(q0, q1, R, obstacles)
+        edge = dubins_path_valid(q0, q1, R, OBSTACLES)
         
         if edge is None:
             raise RuntimeError(f"No valid Dubins path between {q0} and {q1}")
@@ -352,17 +340,18 @@ def validate_goals_within_bounds(goals):
     return valid_goals
 
 # --------------------- Example Run --------------------- #
-START_POSE = (150, 150, 0.0)   # ← visible, collision-free
+START_POSE = (150, 150, 0.0)   
 obstacle_points = [
-    (500, 500, "S"),
-    (1200, 800, "N"),
-    (1700, 400, "E")
+    (600, 600, "S"),
+    (1200, 1200, "N"),
+    (1700, 600, "W")
 ]
 
+OBSTACLES = build_obstacles(obstacle_points)
 goals = [START_POSE] + points_to_goals(obstacle_points)
 start = 0
 goals = validate_goals_within_bounds(goals)  # Validate and adjust if needed
-radius = 50
+radius = 100
 edge_cache.clear()
 unimproved_path = nearest_neighbour_optimized(start, goals, radius)
 path = improve_path(unimproved_path, goals, radius)
