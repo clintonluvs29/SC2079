@@ -76,9 +76,16 @@ def animate_robot(samples, fig, ax):
     robot_dot, = ax.plot([], [], 'go', markersize=8)
     heading_line, = ax.plot([], [], 'g-', linewidth=2)
 
+    def init():
+        robot_dot.set_data([], [])
+        heading_line.set_data([], [])
+        return robot_dot, heading_line
+
     def update(i):
         x, y, theta = samples[i]
-        robot_dot.set_data(x, y)
+
+        # FIX: set_data expects sequences
+        robot_dot.set_data([x], [y])
 
         hx = x + 120 * math.cos(theta)
         hy = y + 120 * math.sin(theta)
@@ -87,9 +94,15 @@ def animate_robot(samples, fig, ax):
         return robot_dot, heading_line
 
     ani = animation.FuncAnimation(
-        fig, update, frames=len(samples),
-        interval=20, blit=True, repeat=False
+        fig,
+        update,
+        frames=len(samples),
+        init_func=init,
+        interval=20,
+        blit=True,
+        repeat=False
     )
+
     plt.show()
 
 # ===================== RUN SIMULATION ===================== #
