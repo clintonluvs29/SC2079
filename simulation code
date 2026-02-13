@@ -17,9 +17,8 @@ def generate_full_path_samples(path, goals, R):
         path_type, segments, _ = edge
         samples = sample_dubins_path_pose(q0, path_type, segments, R)
 
-        # ✅ CRITICAL FIX
-        if i > 0:
-            samples = samples[1:]  # remove duplicate joint point
+        #if i > 0:
+            #samples = samples[1:]  # remove duplicate joint point
 
         full_samples.extend(samples)
 
