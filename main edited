@@ -167,7 +167,7 @@ def point_in_rect(x, y, rect):
     return xmin <= x <= xmax and ymin <= y <= ymax
 
 def path_collides(points, obstacles):
-    for x, y in points:
+    for x, y, theta in points:
         for obs in obstacles:
             if point_in_rect(x, y, obs):
                 return True
@@ -175,7 +175,7 @@ def path_collides(points, obstacles):
 
 def path_out_of_bounds(points):
     """Check if any sampled point in the path is outside boundaries"""
-    for x, y in points:
+    for x, y, theta in points:
         if not within_bounds(x, y):
             return True
     return False
@@ -186,7 +186,7 @@ def dubins_path_valid(q0, q1, R, obstacles):
     if path_type is None:
         return None
     length = sum(segments) * R
-    samples = sample_dubins_path(q0, path_type, segments, R)
+    samples = sample_dubins_path_pose(q0, path_type, segments, R)
     
     # Check both collisions and boundaries
     if path_collides(samples, obstacles):
