@@ -583,45 +583,60 @@ Command* segments_to_commands(const char* path_type, DubinsSegments* segments, d
     return commands;
 }
 
-Command* flattened_dubins_commands(int* path, int n, Pose* goals, double R, int* total_commands) {
+Command* flattened_dubins_commands(int* path, int n, Pose* goals, 
+                                   double R, int pause_ms,
+                                   int* total_commands) 
+{
     Command* all_commands = NULL;
     *total_commands = 0;
     int capacity = 0;
-    
+
     for (int i = 0; i < n - 1; i++) {
+
         Pose q0 = goals[path[i]];
         Pose q1 = goals[path[i+1]];
-        
+
         char path_type[4];
         DubinsSegments segments;
+
         dubins_shortest_path(q0, q1, R, path_type, &segments);
-        
+
         if (strcmp(path_type, "NONE") == 0) {
-            printf("Error: No feasible Dubins path between nodes %d and %d\n", path[i], path[i+1]);
+            printf("Error: No feasible Dubins path between nodes %d and %d\n",
+                   path[i], path[i+1]);
             free(all_commands);
             return NULL;
         }
-        
+
         int seg_count;
         Command* commands = segments_to_commands(path_type, &segments, R, &seg_count);
-        
-        // Resize array if needed
-        if (*total_commands + seg_count > capacity) {
-            capacity = (*total_commands + seg_count) * 2;
+
+        int needed = *total_commands + seg_count + 1; // +1 for pause
+
+        if (needed > capacity) {
+            capacity = needed * 2;
             all_commands = realloc(all_commands, capacity * sizeof(Command));
         }
-        
-        // Copy commands
+
+        // Copy movement commands
         for (int j = 0; j < seg_count; j++) {
-            all_commands[*total_commands + j] = commands[j];
+            all_commands[*total_commands] = commands[j];
+            (*total_commands)++;
         }
-        *total_commands += seg_count;
-        
+
+        // Add pause command
+        if (pause_ms > 0) {
+            all_commands[*total_commands].motion = 'P';   // Pause
+            all_commands[*total_commands].dist = pause_ms;
+            (*total_commands)++;
+        }
+
         free(commands);
     }
-    
+
     return all_commands;
 }
+
 
 // --------------------- Main --------------------- //
 int main() {
@@ -658,12 +673,18 @@ int main() {
     
     // Generate commands
     int total_commands;
-    Command* commands = flattened_dubins_commands(path, n, goals, radius, &total_commands);
+    int pause_ms = 500;  // <-- your pause duration
+    Command* commands = flattened_dubins_commands(path, n, goals, radius,
+                                                  pause_ms, &total_commands);
     
     if (commands) {
         printf("Full sequential Dubins commands:\n");
         for (int i = 0; i < total_commands; i++) {
-            printf("(%c, %f)\n", commands[i].motion, commands[i].dist);
+            if (commands[i].motion == 'P') {
+                printf("(Pu, %.0f)\n", commands[i].dist);
+            } else {
+                printf("(%c, %f)\n", commands[i].motion, commands[i].dist);
+            }
         }
         free(commands);
     }
