@@ -325,13 +325,13 @@ def points_to_goals(points):
     goals = []
     for x, y, direction in points:
         if direction == "N":
-            goal = (x, y+200, -math.pi/2)
+            goal = (x, y+300, -math.pi/2)
         elif direction == "S":
-            goal = (x, y-200, math.pi/2)
+            goal = (x, y-300, math.pi/2)
         elif direction == "W":
-            goal = (x-200, y, 0.0)
+            goal = (x-300, y, 0.0)
         elif direction == "E":
-            goal = (x+200, y, math.pi)
+            goal = (x+300, y, math.pi)
         else:
             raise ValueError(f"Unknown direction: {direction}")
         goals.append(goal)
@@ -379,16 +379,16 @@ def validate_goals_within_bounds(goals):
 # --------------------- Example Run --------------------- 
 START_POSE = (150, 150, math.pi/2)   
 obstacle_points =[
-    (1800, 300, "W"),   # Move right
-    (800, 1800, "S"),   # Move up
-    (300, 1500, "E"),   # Move left
-    (1300, 1500, "S")   # Move down
+    (500, 500, "E"),   # Right / East
+    (1500, 1500, "W"), # Left / West
+    (500, 1500, "S"),
+    (400, 700, "E")
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
 goals = [START_POSE] + points_to_goals(obstacle_points)
 start = 0
-radius = 100
+radius = 70
 edge_cache.clear()
 unimproved_path = nearest_neighbour_optimized(start, goals, radius)
 path = improve_path(unimproved_path, goals, radius)
