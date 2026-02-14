@@ -56,7 +56,7 @@ def RSL(alpha, beta, d):
 def RLR(alpha, beta, d):
     tmp = (6 - d*d + 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) - math.sin(beta))) / 8
     if abs(tmp) > 1: return None
-    p = math.acos(tmp)  
+    p = math.acos(tmp)
     t = mod2pi(alpha - math.atan2(math.cos(alpha) - math.cos(beta), d - math.sin(alpha) + math.sin(beta)) + p/2)
     q = mod2pi(alpha - beta - t + p)
     return t, p, q
@@ -64,9 +64,9 @@ def RLR(alpha, beta, d):
 def LRL(alpha, beta, d):
     tmp = (6 - d*d + 2*math.cos(alpha - beta) + 2*d*(math.sin(beta) - math.sin(alpha))) / 8
     if abs(tmp) > 1: return None
-    p = mod2pi(2*math.pi - math.acos(tmp))
+    p = mod2pi(math.acos(tmp))
     t = mod2pi(-alpha - math.atan2(math.cos(alpha) - math.cos(beta), d + math.sin(alpha) - math.sin(beta)) + p/2)
-    q = mod2pi(beta - alpha - t + p/2)
+    q = mod2pi(beta - alpha - t + p)
     return t, p, q
 
 # --------------------- Dubins Path Length --------------------- #
@@ -361,11 +361,10 @@ def validate_goals_within_bounds(goals):
         valid_goals.append((x, y, theta))
     return valid_goals 
 """
-# --------------------- Example Run --------------------- #
-# --------------------- Example Run --------------------- #
+# --------------------- Example Run --------------------- 
 START_POSE = (150, 150, math.pi/2)   
 obstacle_points = [
-    (1700, 1700, "W")  # Top area
+    (1000, 1000, "S")  # Top area
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
