@@ -56,7 +56,7 @@ def plot_environment(goals):
         ax.text(x + 20, y + 20, f"{i}", fontsize=12)
 
         # Draw orientation arrow
-        arrow_length = 100
+        arrow_length = 150
         ax.arrow(
             x, y,
             arrow_length * math.cos(theta),
