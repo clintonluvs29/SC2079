@@ -357,7 +357,7 @@ def flattened_dubins_commands(path, goals, R, pause_ms=0):
 
         # Add pause after completing this Dubins segment
         if pause_ms > 0:
-            all_commands.append(("Pu", pause_ms))
+            all_commands.append(("PAUSE", pause_ms))
 
     return all_commands
 
@@ -382,7 +382,8 @@ obstacle_points =[
     (500, 500, "E"),   # Right / East
     (1500, 1500, "W"), # Left / West
     (500, 1500, "S"),
-    (400, 700, "E")
+    (400, 700, "E"),
+    (1750, 1000, "W")
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
