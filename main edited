@@ -24,7 +24,7 @@ def LSL(alpha, beta, d):
     t = mod2pi(-alpha + math.atan2(math.cos(beta) - math.cos(alpha), tmp))
     q = mod2pi(beta - math.atan2(math.cos(beta) - math.cos(alpha), tmp))
     return t, p, q
-
+    
 def RSR(alpha, beta, d):
     tmp = d - math.sin(alpha) + math.sin(beta)
     p_sq = 2 + d*d - 2*math.cos(alpha - beta) + 2*d*(math.sin(beta) - math.sin(alpha))
@@ -35,28 +35,43 @@ def RSR(alpha, beta, d):
     return t, p, q
 
 def LSR(alpha, beta, d):
-    p_sq = -2 + d*d + 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) + math.sin(beta))
-    if p_sq < 0: return None
-    p = math.sqrt(p_sq)
-    tmp = math.atan2(-math.cos(alpha) - math.cos(beta), d + math.sin(alpha) + math.sin(beta))
-    t = mod2pi(-alpha + tmp)
-    q = mod2pi(-beta + tmp)
+    sa = math.sin(alpha)
+    sb = math.sin(beta)
+    ca = math.cos(alpha)
+    cb = math.cos(beta)
+    c_ab = math.cos(alpha - beta)
+
+    p_squared = -2 + (d * d) + (2 * c_ab) + (2 * d * (sa + sb))
+    if p_squared < 0:
+        return None
+    p = math.sqrt(p_squared)
+    tmp2 = math.atan2((-ca - cb), (d + sa + sb)) - math.atan2(-2.0, p)
+    t = mod2pi(-alpha + tmp2)
+    q = mod2pi(-mod2pi(beta) + tmp2)
+
     return t, p, q
 
 def RSL(alpha, beta, d):
-    p_sq = -2 + d*d + 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) + math.sin(beta))
-    if p_sq < 0: return None
-    p = math.sqrt(p_sq)
-    tmp = math.atan2(math.cos(alpha) + math.cos(beta), d + math.sin(alpha) + math.sin(beta))
-    t = mod2pi(alpha - tmp)
-    q = mod2pi(beta - tmp)
-    return t, p, q
+    sa = math.sin(alpha)
+    sb = math.sin(beta)
+    ca = math.cos(alpha)
+    cb = math.cos(beta)
+    c_ab = math.cos(alpha - beta)
 
+    p_squared = (d * d) - 2 + (2 * c_ab) - (2 * d * (sa + sb))
+    if p_squared < 0:
+        return None
+    p = math.sqrt(p_squared)
+    tmp2 = math.atan2((ca + cb), (d - sa - sb)) - math.atan2(2.0, p)
+    t = mod2pi(alpha - tmp2)
+    q = mod2pi(mod2pi(beta) - tmp2)
+
+    return t, p, q
 
 def RLR(alpha, beta, d):
     tmp = (6 - d*d + 2*math.cos(alpha - beta) + 2*d*(math.sin(alpha) - math.sin(beta))) / 8
     if abs(tmp) > 1: return None
-    p = math.acos(tmp)
+    p = mod2pi(math.acos(tmp))
     t = mod2pi(alpha - math.atan2(math.cos(alpha) - math.cos(beta), d - math.sin(alpha) + math.sin(beta)) + p/2)
     q = mod2pi(alpha - beta - t + p)
     return t, p, q
@@ -363,14 +378,14 @@ def validate_goals_within_bounds(goals):
 """
 # --------------------- Example Run --------------------- 
 START_POSE = (150, 150, math.pi/2)   
-obstacle_points = [
-    (1000, 1000, "S")  # Top area
+obstacle_points =[
+    (1000, 1000, "N")  # Top area
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
 goals = [START_POSE] + points_to_goals(obstacle_points)
 start = 0
-radius = 400
+radius = 800
 edge_cache.clear()
 unimproved_path = nearest_neighbour_optimized(start, goals, radius)
 path = improve_path(unimproved_path, goals, radius)
