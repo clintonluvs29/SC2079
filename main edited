@@ -379,13 +379,16 @@ def validate_goals_within_bounds(goals):
 # --------------------- Example Run --------------------- 
 START_POSE = (150, 150, math.pi/2)   
 obstacle_points =[
-    (1000, 1000, "N")  # Top area
+    (1800, 300, "W"),   # Move right
+    (800, 1800, "S"),   # Move up
+    (300, 1500, "E"),   # Move left
+    (1300, 1500, "S")   # Move down
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
 goals = [START_POSE] + points_to_goals(obstacle_points)
 start = 0
-radius = 800
+radius = 100
 edge_cache.clear()
 unimproved_path = nearest_neighbour_optimized(start, goals, radius)
 path = improve_path(unimproved_path, goals, radius)
