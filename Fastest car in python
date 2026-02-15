@@ -1,3 +1,5 @@
+#things to change: turning radius not included in turns.
+
 #length of 1st obstacle d1 = 10.0cm
 #length of 2nd obstacle d2 = value
 #rounding radius = value
