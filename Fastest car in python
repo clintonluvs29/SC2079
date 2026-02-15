@@ -1,4 +1,4 @@
-#length of 1st obstacle d1 = value
+#length of 1st obstacle d1 = 10.0cm
 #length of 2nd obstacle d2 = value
 #rounding radius = value
 #distance to first obstacle d3 = 60-150cm
@@ -20,61 +20,61 @@ def generate_parking_commands(
     # ============================================================
     # Step 1: Move straight, maintain distance from obstacle
     # ============================================================
-    cmd("F", d3+45)
+    cmd("FORWARD", d3+45)
 
     direction = detect_direction()
 
     if direction == "L":
-        cmd("L", r*PI/2)
-        cmd("F", d1 / 2)
-        cmd("R", r*PI)
-        cmd("F", d1 / 2)
-        cmd("L", r*PI/2)
+        cmd("LEFT", 90.0)
+        cmd("FOWARD", 5.0)
+        cmd("RIGHT", 180)
+        cmd("FORWARD", 5.0)
+        cmd("LEFT", 90.0)
 
     elif direction == "R":
-        cmd("R", r*PI/2)
-        cmd("F", d1 / 2)
-        cmd("L", r*PI)
-        cmd("F", d1 / 2)
-        cmd("R", r*PI/2)
+        cmd("RIGHT", 90.0)
+        cmd("FORWARD", 5.0)
+        cmd("LEFT", 180.0)
+        cmd("FORWARD", 5.0)
+        cmd("RIGHT", 90.0)
 
     # ============================================================
     # Step 2: Ensure car is forward-facing and positioned correctly
     # ============================================================
-    cmd("F", d4-15)
+    cmd("FOWARD", d4-15)
 
     direction = detect_direction()
-    offset = max(d1 / 2, d2 / 2)
+    offset = max(5.0, d2 / 2)
 
     if direction == "L":
-        cmd("L", r*PI/2)
-        cmd("F", d2 / 2)
-        cmd("R", r*PI)
-        cmd("F", d2 / 2)
+        cmd("LEFT", 90.0)
+        cmd("FORWARD", d2 / 2)
+        cmd("RIGHT", 180.0)
+        cmd("FORWARD", d2 / 2)
 
-        cmd("F", offset)
-        cmd("R", r*PI/2)
-        cmd("F", d3 + d4)
-        cmd("R", r*PI/2)
-        cmd("F", offset)
+        cmd("FORWARD", offset)
+        cmd("RIGHT", 90.0)
+        cmd("FORWARD", d3 + d4)
+        cmd("RIGHT", 90.0)
+        cmd("FORWARD", offset)
 
-        cmd("L", r*PI/2)
-        cmd("F", 60)
+        cmd("LEFT", 90.0)
+        cmd("FORWARD", 60)
 
     elif direction == "R":
-        cmd("R", r*PI/2)
-        cmd("F", d2 / 2)
-        cmd("L", r*PI)
-        cmd("F", d2 / 2)
+        cmd("RIGHT", 90.0)
+        cmd("FORWARD", d2 / 2)
+        cmd("LEFT", 180.0)
+        cmd("FORWARD", d2 / 2)
 
-        cmd("F", offset)
-        cmd("L", r*PI/2)
-        cmd("F", d3 + d4)
-        cmd("L", r*PI/2)
-        cmd("F", offset)
+        cmd("FOWARD", offset)
+        cmd("LEFT", 90.0)
+        cmd("FORWARD", d3 + d4)
+        cmd("LEFT", 90.0)
+        cmd("FORWARD", offset)
 
-        cmd("R", r*PI/2)
-        cmd("F", 60)
+        cmd("RIGHT", 90.0)
+        cmd("FORWARD", 60)
 
     return commands
 
