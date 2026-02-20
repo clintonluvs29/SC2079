@@ -1,3 +1,5 @@
+#right now this only works if turning radius = 10cm
+
 #length of 1st obstacle d1 = 10.0cm
 #length of 2nd obstacle d2 = value
 #rounding radius = value
