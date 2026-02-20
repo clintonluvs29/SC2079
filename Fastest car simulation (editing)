@@ -1,0 +1,131 @@
+import matplotlib.pyplot as plt
+import numpy as np
+#only works for radius 5-25cm
+# Parameters
+d1 = 10  # length of first obstacle in cm
+d2 = 50  # length of second obstacle in cm
+d5 = 10 # width of second obstacle
+r = 5   # rounding radius in cm
+d3 = 90  # distance to first obstacle is d3+30
+d4 = 90  # distance to second obstacle
+direction = "R"  # parking direction ("L" or "R")
+
+# Initialize car position and heading
+x, y = 0, 0
+theta = 0  # 0 degrees pointing right
+
+# Store path points
+path_x = [x]
+path_y = [y]
+
+def forward(dist):
+    global x, y, theta
+    x += dist * np.cos(np.radians(theta))
+    y += dist * np.sin(np.radians(theta))
+    path_x.append(x)
+    path_y.append(y)
+
+def arc(angle, radius, left=True, step=1):
+    global x, y, theta
+    steps = int(abs(angle)/step)
+    step_angle = step if angle > 0 else -step
+    
+    # Determine circle center
+    cx = x - radius * np.sin(np.radians(theta)) * (1 if left else -1)
+    cy = y + radius * np.cos(np.radians(theta)) * (1 if left else -1)
+    
+    for _ in range(steps):
+        theta += step_angle if left else -step_angle
+        rad = np.radians(theta)
+        x = cx + radius * np.sin(rad) * (1 if left else -1)
+        y = cy - radius * np.cos(rad) * (1 if left else -1)
+        path_x.append(x)
+        path_y.append(y)
+
+# Step 1: Move straight to first obstacle
+forward(d3+15-r)
+
+# Step 1 turning maneuvers
+if direction == "L":
+    arc(90, r, left=True)
+    forward(max(d1-r+5.0,0))
+    arc(90, r, left=False)
+    forward(max(40-2*r,0))
+    arc(90, r, left=False)
+    forward(max(d1-r+5.0,0))
+    arc(90, r, left=True)
+else:
+    arc(90, r, left=False)
+    forward(max(d1-r+5.0,0))
+    arc(90, r, left=True)
+    forward(max(40-2*r,0))
+    arc(90, r, left=True)
+    forward(max(d1-r+5.0,0))
+    arc(90, r, left=False)
+
+# Step 2: Forward to second obstacle
+forward(max(d4 +10-max(40-2*r,0)-4*r,0))
+
+# Step 2 turning and positioning
+if direction == "L":
+    arc(90, r, left=True)
+    forward(d2 / 2)
+    arc(90, r, left=False)
+    forward(d5 + 10)
+    arc(90, r, left=False)
+    forward(d2 + 20)
+    arc(90, r, left=False)
+    forward(d3 + d4)
+    arc(90, r, left=False)
+    forward(d2 / 2)
+    arc(90, r, left=True)
+    forward(30)
+else:
+    arc(90, r, left=False)
+    forward(d2 / 2)
+    arc(90, r, left=True)
+    forward(d5 + 10)
+    arc(90, r, left=True)
+    forward(d2 + 20)
+    arc(90, r, left=True)
+    forward(d3 + d4)
+    arc(90, r, left=True)
+    forward(d2 / 2)
+    arc(90, r, left=False)
+    forward(30)
+
+# Plotting
+plt.figure(figsize=(10,6))
+plt.plot(path_x, path_y, '-b', label="Car path")
+
+
+# Existing 10x10 rectangle
+plt.gca().add_patch(plt.Rectangle((d3+30, -5), 10, 10, 
+                                  edgecolor='black', facecolor='none', lw=2, label="10x10 area"))
+
+# Outer rectangle with 15 cm border
+plt.gca().add_patch(plt.Rectangle((d3+15, -20), 40, 40, 
+                                  edgecolor='purple', facecolor='none', lw=2, linestyle='--', label="15 cm border"))
+
+plt.gca().add_patch(plt.Rectangle((d3+40+d4, -d2/2), 10, d2, color='red', alpha=0.5))
+
+plt.gca().add_patch(plt.Rectangle((d3+d4+25, -d2/2 - 15), 10 + 30, d2 + 30,
+                                  edgecolor='purple', facecolor='none', lw=2, linestyle='--', label="Border"))
+
+
+# Start area and robot
+plt.gca().add_patch(plt.Rectangle((-30, -30), 60, 60, edgecolor='green', facecolor='none', lw=2, label="Start area"))
+plt.gca().add_patch(plt.Rectangle((-15, -15), 30, 30, edgecolor='blue', facecolor='cyan', alpha=0.5, label="Robot"))
+
+plt.title("Parking Path with Rounded Turns")
+plt.xlabel("X (cm)")
+plt.ylabel("Y (cm)")
+plt.axis("equal")
+plt.legend()
+
+# Set ticks every 10 units
+plt.xticks(np.arange(-50, max(path_x)+50, 10))
+plt.yticks(np.arange(-50, max(path_y)+50, 10))
+
+plt.grid(True)
+plt.show()
