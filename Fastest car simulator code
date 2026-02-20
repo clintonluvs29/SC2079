@@ -8,7 +8,7 @@ d5 = 10 # width of second obstacle
 r = 10   # rounding radius in cm
 d3 = 90  # distance to first obstacle is d3+30
 d4 = 60  # distance to second obstacle
-direction = "L"  # parking direction ("L" or "R")
+direction = "R"  # parking direction ("L" or "R")
 
 # Initialize car position and heading
 x, y = 0, 0
@@ -57,9 +57,9 @@ if direction == "L":
 else:
     arc(90, r, left=False)
     forward(r/2)
-    arc(90, r, left=False)
+    arc(90, r, left=True)
     forward(20)
-    arc(180, r, left=True)
+    arc(90, r, left=True)
     forward(r/2)
     arc(90, r, left=False)
 
@@ -73,26 +73,26 @@ if direction == "L":
     arc(90, r, left=False)
     forward(d5 + 10)
     arc(90, r, left=False)
-    forward(d2 + 5)
+    forward(d2 + 20)
     arc(90, r, left=False)
     forward(d3 + d4)
     arc(90, r, left=False)
     forward(d2 / 2)
     arc(90, r, left=True)
-    forward(60)
+    forward(30)
 else:
     arc(90, r, left=False)
     forward(d2 / 2)
     arc(90, r, left=True)
     forward(d5 + 10)
-    arc(90, r, left=False)
-    forward(d2 + 5)
+    arc(90, r, left=True)
+    forward(d2 + 20)
     arc(90, r, left=True)
     forward(d3 + d4)
     arc(90, r, left=True)
     forward(d2 / 2)
     arc(90, r, left=False)
-    forward(60)
+    forward(30)
 
 # Plotting
 plt.figure(figsize=(10,6))
