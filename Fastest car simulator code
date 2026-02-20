@@ -81,7 +81,7 @@ if direction == "L":
     arc(90, r, left=False)
     forward(max(d2 - 2*r,0))
     arc(90, r, left=True)
-    forward(max(35-r,0))
+    forward(max(40-r,0))
 else:
     arc(90, r, left=False)
     forward(max(d2-2*r,0))
@@ -94,7 +94,7 @@ else:
     arc(90, r, left=True)
     forward(max(d2 - 2*r,0))
     arc(90, r, left=False)
-    forward(max(35-r,0))
+    forward(max(40-r,0))
 
 # Plotting
 plt.figure(figsize=(10,6))
