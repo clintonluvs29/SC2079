@@ -35,30 +35,33 @@ def generate_parking_commands(
 
     elif direction == "R":
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", 5.0)
-        cmd("LEFT", 180.0)
-        cmd("FORWARD", 5.0)
+        cmd("FORWARD", r/2)
+        cmd("LEFT", 90.0)
+        cmd("FORWARD", 20.0)
+        cmd("LEFT", 90.0)
+        cmd("FORWARD", r/2)
         cmd("RIGHT", 90.0)
 
     # ============================================================
     # Step 2: Ensure car is forward-facing and positioned correctly
     # ============================================================
-    cmd("FORWARD", d4-15)
+    cmd("FORWARD", d4-50)
 
     direction = detect_direction()
-    offset = max(5.0, d2 / 2)
 
     if direction == "L":
         cmd("LEFT", 90.0)
         cmd("FORWARD", d2 / 2)
-        cmd("RIGHT", 180.0)
+        cmd("RIGHT", 90.0)
+        cmd("FORWARD", d2 / 2)
+        cmd("RIGHT", 90.0)
         cmd("FORWARD", d2 / 2)
 
-        cmd("FORWARD", offset)
+        cmd("FORWARD", d2/2)
         cmd("RIGHT", 90.0)
         cmd("FORWARD", d3 + d4)
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", offset)
+        cmd("FORWARD", d2/2)
 
         cmd("LEFT", 90.0)
         cmd("FORWARD", 60)
@@ -69,11 +72,11 @@ def generate_parking_commands(
         cmd("LEFT", 180.0)
         cmd("FORWARD", d2 / 2)
 
-        cmd("FOWARD", offset)
+        cmd("FOWARD", d2/2)
         cmd("LEFT", 90.0)
         cmd("FORWARD", d3 + d4)
         cmd("LEFT", 90.0)
-        cmd("FORWARD", offset)
+        cmd("FORWARD", d2/2)
 
         cmd("RIGHT", 90.0)
         cmd("FORWARD", 60)
