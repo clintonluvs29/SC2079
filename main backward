@@ -138,19 +138,23 @@ def segments_to_commands(path_type, segments, R, use_degrees=True):
     commands = []
 
     for motion, seg in zip(path_type, segments):
-
         dist = abs(seg) * R
-        direction = "FORWARD" if seg >= 0 else "BACKWARD"
 
-        if motion in ["L", "R"]:
-            angle_rad = dist / R
-            angle_val = math.degrees(angle_rad) if use_degrees else angle_rad
-
-            turn = "LEFT" if motion == "L" else "RIGHT"
-            commands.append((f"{direction}_{turn}", angle_val))
-
-        elif motion == "S":
-            commands.append((direction, dist))
+        # Determine command names based on motion and direction
+        if seg >= 0:  # Forward motion
+            if motion == "L":
+                commands.append(("LEFT", math.degrees(dist / R) if use_degrees else dist / R))
+            elif motion == "R":
+                commands.append(("RIGHT", math.degrees(dist / R) if use_degrees else dist / R))
+            elif motion == "S":
+                commands.append(("STRAIGHT", dist))
+        else:  # Backward motion
+            if motion == "L":
+                commands.append(("BACKWARD_LEFT", math.degrees(dist / R) if use_degrees else dist / R))
+            elif motion == "R":
+                commands.append(("BACKWARD_RIGHT", math.degrees(dist / R) if use_degrees else dist / R))
+            elif motion == "S":
+                commands.append(("BACKWARD", dist))
 
     return commands
 
