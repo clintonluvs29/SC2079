@@ -45,7 +45,7 @@ def arc(angle, radius, left=True, step=1):
         path_y.append(y)
 
 # Step 1: Move straight to first obstacle
-forward(d3+15-r)
+forward(max(d3+10-r,0))
 
 # Step 1 turning maneuvers
 if direction == "L":
@@ -81,7 +81,7 @@ if direction == "L":
     arc(90, r, left=False)
     forward(max(d2 - 2*r,0))
     arc(90, r, left=True)
-    forward(max(45-r,0))
+    forward(max(35-r,0))
 else:
     arc(90, r, left=False)
     forward(max(d2-2*r,0))
@@ -94,29 +94,29 @@ else:
     arc(90, r, left=True)
     forward(max(d2 - 2*r,0))
     arc(90, r, left=False)
-    forward(max(45-r,0))
+    forward(max(35-r,0))
 
 # Plotting
 plt.figure(figsize=(10,6))
 plt.plot(path_x, path_y, '-b', label="Car path")
 
 
-# Existing 10x10 rectangle
-plt.gca().add_patch(plt.Rectangle((d3+30, -5), 10, 10, 
+# Existing 10x10 rectangle #change
+plt.gca().add_patch(plt.Rectangle((d3+25, -5), 10, 10, 
                                   edgecolor='black', facecolor='none', lw=2, label="10x10 area"))
 
 # Outer rectangle with 15 cm border
-plt.gca().add_patch(plt.Rectangle((d3+15, -20), 40, 40, 
+plt.gca().add_patch(plt.Rectangle((d3+10, -20), 40, 40, 
                                   edgecolor='purple', facecolor='none', lw=2, linestyle='--', label="15 cm border"))
 
-plt.gca().add_patch(plt.Rectangle((d3+40+d4, -d2/2), 10, d2, color='red', alpha=0.5))
+plt.gca().add_patch(plt.Rectangle((d3+35+d4, -d2/2), 10, d2, color='red', alpha=0.5))
 
-plt.gca().add_patch(plt.Rectangle((d3+d4+25, -d2/2 - 15), 10 + 30, d2 + 30,
+plt.gca().add_patch(plt.Rectangle((d3+d4+20, -d2/2 - 15), 10 + 30, d2 + 30,
                                   edgecolor='purple', facecolor='none', lw=2, linestyle='--', label="Border"))
 
 
 # Start area and robot
-plt.gca().add_patch(plt.Rectangle((-30, -30), 60, 60, edgecolor='green', facecolor='none', lw=2, label="Start area"))
+plt.gca().add_patch(plt.Rectangle((-25, -30), 50, 60, edgecolor='green', facecolor='none', lw=2, label="Start area"))
 plt.gca().add_patch(plt.Rectangle((-15, -15), 30, 30, edgecolor='blue', facecolor='cyan', alpha=0.5, label="Robot"))
 
 plt.title("Parking Path with Rounded Turns")
