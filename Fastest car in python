@@ -1,4 +1,4 @@
-#right now this only works if turning radius = 10cm
+#only works if turning radius = 5cm to 15cm
 
 #length of 1st obstacle d1 = 10.0cm
 #length of 2nd obstacle d2 = value
@@ -23,62 +23,62 @@ def generate_parking_commands(
     # ============================================================
     # Step 1: Move straight, maintain distance from obstacle
     # ============================================================
-    cmd("FORWARD", d3+5)
+    cmd("FORWARD", max(d3+15-r,0))
 
     direction = detect_direction()
 
     if direction == "L":
         cmd("LEFT", 90.0)
-        cmd("FORWARD", r/2)
+        cmd("FORWARD", max(d1-r+5.0,0))
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", 20.0)
+        cmd("FORWARD", max(40-2*r,0))
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", r/2)
+        cmd("FORWARD", max(d1-r+5.0,0))
         cmd("LEFT", 90.0)
 
     elif direction == "R":
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", r/2)
+        cmd("FORWARD", max(d1-r+5.0,0))
         cmd("LEFT", 90.0)
-        cmd("FORWARD", 20.0)
+        cmd("FORWARD", max(40-2*r,0))
         cmd("LEFT", 90.0)
-        cmd("FORWARD", r/2)
+        cmd("FORWARD", max(d1-r+5.0,0))
         cmd("RIGHT", 90.0)
 
     # ============================================================
     # Step 2: Ensure car is forward-facing and positioned correctly
     # ============================================================
-    cmd("FORWARD", d4-50)
+    cmd("FORWARD", max(d4 +10-max(40-2*r,0)-4*r,0))
 
     direction = detect_direction()
 
     if direction == "L":
         cmd("LEFT", 90.0)
-        cmd("FORWARD", d2 / 2)
+        cmd("FORWARD", max(d2 -2*r,0))
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", d5+10)
+        cmd("FORWARD", max(d5 + 30-2*r,0))
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", d2 + 20)
+        cmd("FORWARD", max(2*d2 - 2*r,0))
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", d3+d4)
+        cmd("FORWARD", max(d3 + d4 + 20 - 2*r,0))
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", d2/2)
+        cmd("FORWARD", max(d2 -2*r,0))
         cmd("LEFT", 90.0)
-        cmd("FORWARD", 30)
+        cmd("FORWARD", max(45-r,0))
 
     elif direction == "R":
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", d2 / 2)
+        cmd("FORWARD", max(d2 -2*r,0))
         cmd("LEFT", 90.0)
-        cmd("FORWARD", d5+10)
+        cmd("FORWARD", max(d5 + 30-2*r,0))
         cmd("LEFT", 90.0)
-        cmd("FORWARD", d2 + 20)
+        cmd("FORWARD", max(2*d2 - 2*r,0))
         cmd("LEFT", 90.0)
-        cmd("FORWARD", d3 + d4)
+        cmd("FORWARD", max(d3 + d4 + 20 - 2*r,0))
         cmd("LEFT", 90.0)
-        cmd("FORWARD", d2/2)
+        cmd("FORWARD", max(d2 -2*r,0))
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", 30)
+        cmd("FORWARD", max(45-r,0))
 
     return commands
 
