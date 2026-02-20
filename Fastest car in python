@@ -23,7 +23,7 @@ def generate_parking_commands(
     # ============================================================
     # Step 1: Move straight, maintain distance from obstacle
     # ============================================================
-    cmd("FORWARD", max(d3+15-r,0))
+    cmd("FORWARD", max(d3+10-r,0))
 
     direction = detect_direction()
 
@@ -64,7 +64,7 @@ def generate_parking_commands(
         cmd("RIGHT", 90.0)
         cmd("FORWARD", max(d2 -2*r,0))
         cmd("LEFT", 90.0)
-        cmd("FORWARD", max(45-r,0))
+        cmd("FORWARD", max(40-r,0))
 
     elif direction == "R":
         cmd("RIGHT", 90.0)
@@ -78,7 +78,7 @@ def generate_parking_commands(
         cmd("LEFT", 90.0)
         cmd("FORWARD", max(d2 -2*r,0))
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", max(45-r,0))
+        cmd("FORWARD", max(40-r,0))
 
     return commands
 
