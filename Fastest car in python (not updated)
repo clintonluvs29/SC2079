@@ -3,6 +3,7 @@
 #rounding radius = value
 #distance to first obstacle d3 = 60-150cm
 #distance to second obstacle d4 = 60-150cm
+#width of 2nd obstacle d5 = value
 
 import math
 PI = math.pi
@@ -53,33 +54,29 @@ def generate_parking_commands(
         cmd("LEFT", 90.0)
         cmd("FORWARD", d2 / 2)
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", d2 / 2)
+        cmd("FORWARD", d5+10)
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", d2 / 2)
-
-        cmd("FORWARD", d2/2)
+        cmd("FORWARD", d2 + 20)
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", d3 + d4)
+        cmd("FORWARD", d3+d4)
         cmd("RIGHT", 90.0)
         cmd("FORWARD", d2/2)
-
         cmd("LEFT", 90.0)
-        cmd("FORWARD", 60)
+        cmd("FORWARD", 30)
 
     elif direction == "R":
         cmd("RIGHT", 90.0)
         cmd("FORWARD", d2 / 2)
-        cmd("LEFT", 180.0)
-        cmd("FORWARD", d2 / 2)
-
-        cmd("FOWARD", d2/2)
+        cmd("LEFT", 90.0)
+        cmd("FORWARD", d5+10)
+        cmd("LEFT", 90.0)
+        cmd("FORWARD", d2 + 20)
         cmd("LEFT", 90.0)
         cmd("FORWARD", d3 + d4)
         cmd("LEFT", 90.0)
         cmd("FORWARD", d2/2)
-
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", 60)
+        cmd("FORWARD", 30)
 
     return commands
 
