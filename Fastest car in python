@@ -1,4 +1,5 @@
 #only works if turning radius = 5cm to 15cm
+#unless it reverses somewhere along its path
 
 #length of 1st obstacle d1 = 10.0cm
 #length of 2nd obstacle d2 = value
