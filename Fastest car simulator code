@@ -6,8 +6,8 @@ import numpy as np
 # Parameters
 d1 = 10  # length of first obstacle in cm
 d2 = 50  # length of second obstacle in cm
-d5 = 10 # width of second obstacle
-r = 5   # rounding radius in cm
+d5 = 20 # width of second obstacle
+r = 15   # rounding radius in cm
 d3 = 90  # distance to first obstacle is d3+30
 d4 = 60  # distance to second obstacle
 direction = "L"  # parking direction ("L" or "R")
@@ -77,7 +77,7 @@ if direction == "L":
     arc(90, r, left=False)
     forward(max(2*d2 - 2*r,0))
     arc(90, r, left=False)
-    forward(max(d3 + d4 + 20 - 2*r,0))
+    forward(max(d3 + d4 + d5 + 10 - 2*r,0))
     arc(90, r, left=False)
     forward(max(d2 - 2*r,0))
     arc(90, r, left=True)
@@ -90,7 +90,7 @@ else:
     arc(90, r, left=True)
     forward(max(2*d2 - 2*r,0))
     arc(90, r, left=True)
-    forward(max(d3 + d4 + 20 - 2*r,0))
+    forward(max(d3 + d4 + d5 + 10 - 2*r,0))
     arc(90, r, left=True)
     forward(max(d2 - 2*r,0))
     arc(90, r, left=False)
@@ -109,9 +109,9 @@ plt.gca().add_patch(plt.Rectangle((d3+25, -5), 10, 10,
 plt.gca().add_patch(plt.Rectangle((d3+10, -20), 40, 40, 
                                   edgecolor='purple', facecolor='none', lw=2, linestyle='--', label="15 cm border"))
 
-plt.gca().add_patch(plt.Rectangle((d3+35+d4, -d2/2), 10, d2, color='red', alpha=0.5))
+plt.gca().add_patch(plt.Rectangle((d3+35+d4, -d2/2), d5, d2, color='red', alpha=0.5))
 
-plt.gca().add_patch(plt.Rectangle((d3+d4+20, -d2/2 - 15), 10 + 30, d2 + 30,
+plt.gca().add_patch(plt.Rectangle((d3+d4+20, -d2/2 - 15), d5 + 30, d2 + 30,
                                   edgecolor='purple', facecolor='none', lw=2, linestyle='--', label="Border"))
 
 
