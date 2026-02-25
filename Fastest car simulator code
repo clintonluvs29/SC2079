@@ -1,16 +1,15 @@
-#only works for radius 5-15cm
-
 import matplotlib.pyplot as plt
 import numpy as np
-
+#only works for radius 5-15cm
 # Parameters
 d1 = 10  # length of first obstacle in cm
 d2 = 50  # length of second obstacle in cm
 d5 = 20 # width of second obstacle
-r = 15   # rounding radius in cm
+r = 0   # rounding radius in cm
 d3 = 90  # distance to first obstacle is d3+30
 d4 = 60  # distance to second obstacle
-direction = "L"  # parking direction ("L" or "R")
+direction1 = "R"  # parking direction ("L" or "R")
+direction2 = "L"  # parking direction ("L" or "R")
 
 # Initialize car position and heading
 x, y = 0, 0
@@ -48,28 +47,28 @@ def arc(angle, radius, left=True, step=1):
 forward(max(d3+10-r,0))
 
 # Step 1 turning maneuvers
-if direction == "L":
+if direction1 == "L":
     arc(90, r, left=True)
-    forward(max(d1-r+5.0,0))
+    forward(max(d1-r+10.0,0))
     arc(90, r, left=False)
     forward(max(40-2*r,0))
     arc(90, r, left=False)
-    forward(max(d1-r+5.0,0))
+    forward(max(d1-r+10.0,0))
     arc(90, r, left=True)
 else:
     arc(90, r, left=False)
-    forward(max(d1-r+5.0,0))
+    forward(max(d1-r+10.0,0))
     arc(90, r, left=True)
     forward(max(40-2*r,0))
     arc(90, r, left=True)
-    forward(max(d1-r+5.0,0))
+    forward(max(d1-r+10.0,0))
     arc(90, r, left=False)
 
 # Step 2: Forward to second obstacle
 forward(max(d4 +10-max(40-2*r,0)-4*r,0))
 
 # Step 2 turning and positioning
-if direction == "L":
+if direction2 == "L":
     arc(90, r, left=True)
     forward(max(d2 -2*r,0))
     arc(90, r, left=False)
