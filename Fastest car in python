@@ -30,20 +30,20 @@ def generate_parking_commands(
 
     if direction == "L":
         cmd("LEFT", 90.0)
-        cmd("FORWARD", max(d1-r+5.0,0))
+        cmd("FORWARD", max(d1-r+10.0,0))
         cmd("RIGHT", 90.0)
         cmd("FORWARD", max(40-2*r,0))
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", max(d1-r+5.0,0))
+        cmd("FORWARD", max(d1-r+10.0,0))
         cmd("LEFT", 90.0)
 
     elif direction == "R":
         cmd("RIGHT", 90.0)
-        cmd("FORWARD", max(d1-r+5.0,0))
+        cmd("FORWARD", max(d1-r+10.0,0))
         cmd("LEFT", 90.0)
         cmd("FORWARD", max(40-2*r,0))
         cmd("LEFT", 90.0)
-        cmd("FORWARD", max(d1-r+5.0,0))
+        cmd("FORWARD", max(d1-r+10.0,0))
         cmd("RIGHT", 90.0)
 
     # ============================================================
