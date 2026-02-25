@@ -1,0 +1,233 @@
+import math
+
+# --------------------- Constants --------------------- #
+X_MIN, X_MAX = 0.0, 2000.0
+Y_MIN, Y_MAX = 0.0, 2000.0
+edge_cache = {}
+# --------------------- Utility Functions --------------------- #
+def normalize_to_90(theta):
+    # Convert radians to nearest multiple of 90°
+    deg = round(math.degrees(theta) / 90) * 90
+    return math.radians(deg % 360)
+    
+def mod2pi(theta):
+    return theta - 2.0 * math.pi * math.floor(theta / (2.0 * math.pi))
+
+def euclidean(p, q):
+    return math.hypot(p[0] - q[0], p[1] - q[1])
+
+def within_bounds(x, y):
+    """Check if a point is within the defined boundaries"""
+    return X_MIN <= x <= X_MAX and Y_MIN <= y <= Y_MAX
+
+# --------------------- Obstacles --------------------- #
+def build_obstacles(obstacle_points):
+    obstacles = []
+    for x, y, _ in obstacle_points:
+        obstacles.append((x-150, x+150, y-150, y+150))
+    return obstacles
+
+def point_in_rect(x, y, rect):
+    xmin, xmax, ymin, ymax = rect
+    return xmin <= x <= xmax and ymin <= y <= ymax
+
+def path_collides(points, obstacles):
+    for x, y, theta in points:
+        for obs in obstacles:
+            if point_in_rect(x, y, obs):
+                return True
+    return False
+
+def path_out_of_bounds(points):
+    for x, y, theta in points:
+        if not within_bounds(x, y):
+            return True
+    return False
+    
+def right_angle_path(q0, q1, obstacles):
+    def attempt_path(order):
+        x0, y0, theta0 = q0
+        x1, y1, theta1 = q1
+
+        theta = normalize_to_90(theta0)
+        x, y = x0, y0
+
+        commands = []
+        samples = [(x, y, theta)]
+
+        def turn_to(target_theta):
+            nonlocal theta
+            while theta != target_theta:
+                diff = (target_theta - theta) % (2*math.pi)
+                if diff == math.pi/2:
+                    commands.append(("LEFT", 90))
+                    theta += math.pi/2
+                else:
+                    commands.append(("RIGHT", 90))
+                    theta -= math.pi/2
+                theta = normalize_to_90(theta)
+
+        def forward_to(nx, ny):
+            nonlocal x, y
+            dist = euclidean((x, y), (nx, ny))
+            commands.append(("FORWARD", dist))
+            x, y = nx, ny
+            samples.append((x, y, theta))
+
+        # Try order
+        for axis in order:
+            if axis == "X" and x != x1:
+                target_theta = 0 if x1 > x else math.pi
+                turn_to(target_theta)
+                forward_to(x1, y)
+
+            if axis == "Y" and y != y1:
+                target_theta = math.pi/2 if y1 > y else 3*math.pi/2
+                turn_to(target_theta)
+                forward_to(x, y1)
+
+        # Final heading correction
+        theta1_n = normalize_to_90(theta1)
+        turn_to(theta1_n)
+
+        if path_collides(samples, obstacles):
+            return None
+        if path_out_of_bounds(samples):
+            return None
+
+        total_length = sum(cmd[1] for cmd in commands if cmd[0] == "FORWARD")
+        return commands, total_length
+
+    # Try both L-shapes
+    path_xy = attempt_path(["X", "Y"])
+    path_yx = attempt_path(["Y", "X"])
+
+    valid_paths = [p for p in [path_xy, path_yx] if p is not None]
+    if not valid_paths:
+        return None
+
+    return min(valid_paths, key=lambda p: p[1])
+    
+# --------------------- TSP Heuristics --------------------- #
+def get_edge(i, j, goals, R, edge_cache):
+
+    if (i, j) in edge_cache:
+        return edge_cache[(i, j)]
+
+    result = right_angle_path(goals[i], goals[j], OBSTACLES)
+
+    edge_cache[(i, j)] = result
+    return result
+
+def nearest_neighbour_optimized(start, points, R): 
+    n = len(points) 
+    visited = [False] * n 
+    path = [start]
+    visited[start] = True
+    v = start
+
+    for _ in range(n - 1): 
+        candidates = [(euclidean(points[v], points[w]), w) for w in range(n) if not visited[w]]
+        candidates.sort(key=lambda x: x[0])
+        best_dubins = float('inf')
+        best_w = None
+
+        for e_dist, w in candidates:
+            if e_dist >= best_dubins: break
+            edge = get_edge(v, w, points, R, edge_cache)
+            if edge is None: continue
+            d_dist = edge[1]
+            if d_dist < best_dubins:
+                best_dubins = d_dist
+                best_w = w
+
+        if best_w is None:
+            raise RuntimeError(f"No valid Dubins edge from node {v} (collision or out of bounds)")
+
+        path.append(best_w)
+        visited[best_w] = True
+        v = best_w
+    return path
+    
+def swap(path, i, j):
+    path[i], path[j] = path[j], path[i]
+
+def path_length(path, points, R):
+    total = 0.0
+    for i in range(len(path)-1):
+        edge = get_edge(path[i], path[i+1], goals, R, edge_cache)
+        if edge is None: return float("inf")
+        total += edge[1]
+    return total
+
+def improve_path(path, points, R):
+    best_length = path_length(path, points, R)
+    for i in range(1, len(path)-1):
+        swap(path, i, i+1)
+        new_length = path_length(path, points, R)
+        if new_length >= best_length:
+            swap(path, i, i+1)
+        else:
+            best_length = new_length
+    return path
+
+# --------------------- Goal Generation --------------------- #
+def points_to_goals(points):
+    goals = []
+    for x, y, direction in points:
+        if direction == "N":
+            goal = (x, y+300, -math.pi/2)
+        elif direction == "S":
+            goal = (x, y-300, math.pi/2)
+        elif direction == "W":
+            goal = (x-300, y, 0.0)
+        elif direction == "E":
+            goal = (x+300, y, math.pi)
+        else:
+            raise ValueError(f"Unknown direction: {direction}")
+        goals.append(goal)
+    return goals
+
+
+# --------------------- Example Run --------------------- 
+START_POSE = (150, 150, math.pi/2)   
+obstacle_points =[
+    (500, 500, "E"),   # Right / East
+    (1500, 1500, "W"), # Left / West
+    (500, 1500, "S"),
+    (400, 700, "E"),
+    (1750, 1000, "W")
+]
+
+OBSTACLES = build_obstacles(obstacle_points)
+goals = [START_POSE] + points_to_goals(obstacle_points)
+start = 0
+radius = 200
+edge_cache.clear()
+unimproved_path = nearest_neighbour_optimized(start, goals, radius)
+path = improve_path(unimproved_path, goals, radius)
+
+full_commands = []
+
+full_commands = []
+
+for i in range(len(path) - 1):
+    edge = get_edge(path[i], path[i+1], goals, radius, edge_cache)
+
+    if edge is None:
+        raise RuntimeError("Invalid edge in final tour")
+
+    commands, _ = edge
+    full_commands.extend(commands)
+
+    # Add pause after reaching each goal (except final goal if you prefer)
+    full_commands.append(("PAUSE", 3000))
+
+# Print sequential commands for the entire tour
+print("Full sequential commands:")
+for cmd in full_commands:
+    print(cmd)
+
+# Print boundary information
+print(f"\nBoundaries: X=[{X_MIN}, {X_MAX}], Y=[{Y_MIN}, {Y_MAX}]")
+print(f"All generated paths should stay within these boundaries.")
