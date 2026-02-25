@@ -1,0 +1,97 @@
+import matplotlib.pyplot as plt
+
+# --------------------- Simulation --------------------- #
+
+STEP_SIZE = 5.0  # cm resolution for simulation sampling
+
+def simulate_commands(start_pose, commands):
+    x, y, theta = start_pose
+    path = [(x, y, theta)]
+
+    for cmd, value in commands:
+
+        if cmd == "FORWARD":
+            distance = value
+            steps = max(1, int(distance / STEP_SIZE))
+            dx = math.cos(theta) * (distance / steps)
+            dy = math.sin(theta) * (distance / steps)
+
+            for _ in range(steps):
+                x += dx
+                y += dy
+                path.append((x, y, theta))
+
+        elif cmd == "LEFT":
+            theta += math.pi/2
+            theta = normalize_to_90(theta)
+            path.append((x, y, theta))
+
+        elif cmd == "RIGHT":
+            theta -= math.pi/2
+            theta = normalize_to_90(theta)
+            path.append((x, y, theta))
+
+    return path
+
+
+# --------------------- Run Simulation --------------------- #
+
+simulated_path = simulate_commands(START_POSE, full_commands)
+
+collision = path_collides(simulated_path, OBSTACLES)
+out_of_bounds = path_out_of_bounds(simulated_path)
+
+print("\nSimulation Results:")
+print("Collision:", collision)
+print("Out of bounds:", out_of_bounds)
+
+
+# --------------------- Visualization --------------------- #
+
+def plot_simulation(path, obstacles):
+    plt.figure(figsize=(8,8))
+
+    # Plot path
+    xs = [p[0] for p in path]
+    ys = [p[1] for p in path]
+    plt.plot(xs, ys, 'b-', label="Robot Path")
+
+    # Plot obstacles
+    for obs in obstacles:
+        xmin, xmax, ymin, ymax = obs
+        plt.gca().add_patch(
+            plt.Rectangle((xmin+100, ymin+100),
+                          100,
+                          100,
+                          color='red',
+                          alpha=0.3)
+        )
+        
+    ax = plt.gca()
+
+    for i, (x, y, theta) in enumerate(goals):
+        ax.plot(x, y, 'bo')
+        ax.text(x + 20, y + 20, f"{i}", fontsize=12)
+    
+        # Draw orientation arrow
+        arrow_length = 150
+        ax.arrow(
+            x, y,
+            arrow_length * math.cos(theta),
+            arrow_length * math.sin(theta),
+            head_width=40,
+            color='blue'
+        )
+
+    # Plot start
+    plt.plot(path[0][0], path[0][1], 'go', label="Start")
+
+    plt.xlim(X_MIN, X_MAX)
+    plt.ylim(Y_MIN, Y_MAX)
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.legend()
+    plt.title("Right-Angle Path Simulation")
+    plt.show()
+
+
+plot_simulation(simulated_path, OBSTACLES)
