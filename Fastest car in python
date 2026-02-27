@@ -50,6 +50,7 @@ def generate_parking_commands(
     # Step 2: Ensure car is forward-facing and positioned correctly
     # ============================================================
     cmd("FORWARD", max(d4 +10-max(40-2*r,0)-4*r,0))
+    cmd("BACKWARD", 10)
 
     direction = detect_direction()
 
