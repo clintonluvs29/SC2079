@@ -5,7 +5,7 @@ import numpy as np
 d1 = 10  # length of first obstacle in cm
 d2 = 50  # length of second obstacle in cm
 d5 = 20 # width of second obstacle
-r = 0   # rounding radius in cm
+r = 20   # rounding radius in cm
 d3 = 90  # distance to first obstacle is d3+30
 d4 = 60  # distance to second obstacle
 direction1 = "R"  # parking direction ("L" or "R")
@@ -66,6 +66,7 @@ else:
 
 # Step 2: Forward to second obstacle
 forward(max(d4 +10-max(40-2*r,0)-4*r,0))
+forward(-10)
 
 # Step 2 turning and positioning
 if direction2 == "L":
