@@ -61,8 +61,8 @@ def plot_simulation(path, obstacles):
         xmin, xmax, ymin, ymax = obs
         plt.gca().add_patch(
             plt.Rectangle((xmin, ymin),
-                          500,
-                          500,
+                          490,
+                          490,
                           color='red',
                           alpha=0.3)
         )
