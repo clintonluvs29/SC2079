@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+### import matplotlib.pyplot as plt
 
 # --------------------- Simulation --------------------- #
 
@@ -60,9 +60,9 @@ def plot_simulation(path, obstacles):
     for obs in obstacles:
         xmin, xmax, ymin, ymax = obs
         plt.gca().add_patch(
-            plt.Rectangle((xmin+100, ymin+100),
-                          100,
-                          100,
+            plt.Rectangle((xmin, ymin),
+                          500,
+                          500,
                           color='red',
                           alpha=0.3)
         )
