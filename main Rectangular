@@ -1,8 +1,8 @@
 import math
 
 # --------------------- Constants --------------------- #
-X_MIN, X_MAX = 0.0, 2000.0-200.0
-Y_MIN, Y_MAX = 0.0, 2000.0-200.0
+X_MIN, X_MAX = 0.0, 2000.0
+Y_MIN, Y_MAX = 0.0, 2000.0
 edge_cache = {}
 # --------------------- Utility Functions --------------------- #
 def normalize_to_90(theta):
@@ -18,7 +18,7 @@ def euclidean(p, q):
 
 def within_bounds(x, y):
     """Check if a point is within the defined boundaries"""
-    return X_MIN <= x <= X_MAX and Y_MIN <= y <= Y_MAX
+    return X_MIN <= x <= X_MAX-200.0 and Y_MIN <= y <= Y_MAX-200.0
 
 # --------------------- Obstacles --------------------- #
 def build_obstacles(obstacle_points):
