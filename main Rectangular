@@ -1,8 +1,8 @@
 import math
 
 # --------------------- Constants --------------------- #
-X_MIN, X_MAX = 0.0, 2000.0
-Y_MIN, Y_MAX = 0.0, 2000.0
+X_MIN, X_MAX = 0.0, 2000.0-200.0
+Y_MIN, Y_MAX = 0.0, 2000.0-200.0
 edge_cache = {}
 # --------------------- Utility Functions --------------------- #
 def normalize_to_90(theta):
@@ -44,14 +44,12 @@ def path_out_of_bounds(points):
             return True
     return False
     
-def right_angle_path(q0, q1, obstacles):
-    def attempt_path(order):
-        x0, y0, theta0 = q0
-        x1, y1, theta1 = q1
-
+def right_angle_path_with_detours(q0, q1, obstacles, detour_step=200):
+    def attempt_path(order, start, end, mid_override=None):
+        x0, y0, theta0 = start
+        x1, y1, theta1 = end
         theta = normalize_to_90(theta0)
         x, y = x0, y0
-
         commands = []
         samples = [(x, y, theta)]
 
@@ -71,88 +69,135 @@ def right_angle_path(q0, q1, obstacles):
             nonlocal x, y
             dist = euclidean((x, y), (nx, ny))
             commands.append(("FORWARD", dist))
-        
-            steps = int(dist // 10)  # sample every 10 units
+            steps = max(1, int(dist // 10))
             for i in range(1, steps+1):
                 sx = x + (nx - x) * i / steps
                 sy = y + (ny - y) * i / steps
                 samples.append((sx, sy, theta))
-        
             x, y = nx, ny
 
-        # Try order
         for axis in order:
             if axis == "X" and x != x1:
                 target_theta = 0 if x1 > x else math.pi
                 turn_to(target_theta)
                 forward_to(x1, y)
-
             if axis == "Y" and y != y1:
                 target_theta = math.pi/2 if y1 > y else 3*math.pi/2
                 turn_to(target_theta)
                 forward_to(x, y1)
 
-        # Final heading correction
-        theta1_n = normalize_to_90(theta1)
-        turn_to(theta1_n)
+        turn_to(normalize_to_90(theta1))
 
-        if path_collides(samples, obstacles):
+        if path_collides(samples, obstacles) or path_out_of_bounds(samples):
             return None
-        if path_out_of_bounds(samples):
-            return None
-
         total_length = sum(cmd[1] for cmd in commands if cmd[0] == "FORWARD")
         return commands, total_length
+    pass
 
-    # Try both L-shapes
-    path_xy = attempt_path(["X", "Y"])
-    path_yx = attempt_path(["Y", "X"])
+    def attempt_u_path(start, end, axis="X", detour_offset=200):
+        """
+        U-shaped path: move partway along axis1, detour on axis2, return on axis1.
+        axis="X" means: move in X → move in Y → move in X
+        axis="Y" means: move in Y → move in X → move in Y
+        """
+        x0, y0, theta0 = start
+        x1, y1, theta1 = end
 
-    valid_paths = [p for p in [path_xy, path_yx] if p is not None]
-    if not valid_paths:
+        if axis == "X":
+            mid_x = (x0 + x1) / 2
+            waypoint1 = (mid_x, y0, theta0)
+            waypoint2 = (mid_x, y1 + detour_offset, theta0)  # detour step in Y
+            waypoint3 = (x1,    y1 + detour_offset, theta0)
+        else:
+            mid_y = (y0 + y1) / 2
+            waypoint1 = (x0,               mid_y, theta0)
+            waypoint2 = (x1 + detour_offset, mid_y, theta0)
+            waypoint3 = (x1 + detour_offset, y1,   theta0)
+
+        # Chain 3 L-shaped legs together
+        leg1 = attempt_path(["X", "Y"], start,     waypoint1)
+        leg2 = attempt_path(["X", "Y"], waypoint1, waypoint2)
+        leg3 = attempt_path(["X", "Y"], waypoint2, end)
+
+        if leg1 and leg2 and leg3:
+            cmds = leg1[0] + leg2[0] + leg3[0]
+            total = leg1[1] + leg2[1] + leg3[1]
+            return (cmds, total)
         return None
 
-    return min(valid_paths, key=lambda p: p[1])
+    # 1. Try L-shapes first (fast)
+    path_xy = attempt_path(["X", "Y"], q0, q1)
+    path_yx = attempt_path(["Y", "X"], q0, q1)
+    valid_paths = [p for p in [path_xy, path_yx] if p is not None]
+
+    # 2. Try U-shapes
+    for offset in [-detour_step, detour_step]:
+        for axis in ["X", "Y"]:
+            u_path = attempt_u_path(q0, q1, axis=axis, detour_offset=offset)
+            if u_path:
+                valid_paths.append(u_path)
+
+    if valid_paths:
+        return min(valid_paths, key=lambda p: p[1])
+
+    return None
+    
     
 # --------------------- TSP Heuristics --------------------- #
 def get_edge(i, j, goals, R, edge_cache):
-
     if (i, j) in edge_cache:
         return edge_cache[(i, j)]
-
-    result = right_angle_path(goals[i], goals[j], OBSTACLES)
-
+    result = right_angle_path_with_detours(goals[i], goals[j], OBSTACLES)
     edge_cache[(i, j)] = result
     return result
 
-def nearest_neighbour_optimized(start, points, R): 
-    n = len(points) 
-    visited = [False] * n 
+import random
+
+def nearest_neighbour_optimized(start, points, R, max_attempts=5): 
+    """
+    Nearest neighbor TSP that tries alternative edges if one fails.
+    """
+    n = len(points)
+    visited = [False] * n
     path = [start]
     visited[start] = True
     v = start
 
-    for _ in range(n - 1): 
+    for _ in range(n - 1):
+        # Generate candidates sorted by Euclidean distance
         candidates = [(euclidean(points[v], points[w]), w) for w in range(n) if not visited[w]]
         candidates.sort(key=lambda x: x[0])
-        best_dubins = float('inf')
-        best_w = None
 
-        for e_dist, w in candidates:
-            if e_dist >= best_dubins: break
-            edge = get_edge(v, w, points, R, edge_cache)
-            if edge is None: continue
-            d_dist = edge[1]
-            if d_dist < best_dubins:
-                best_dubins = d_dist
-                best_w = w
+        best_w = None
+        best_dubins = float('inf')
+
+        # Try candidates in order, allow several attempts
+        for attempt in range(max_attempts):
+            for e_dist, w in candidates:
+                edge = get_edge(v, w, points, R, edge_cache)
+                if edge is None:
+                    continue  # invalid, try next candidate
+                d_dist = edge[1]
+                if d_dist < best_dubins:
+                    best_dubins = d_dist
+                    best_w = w
+
+            if best_w is not None:
+                break  # found a valid edge
+            else:
+                # Shuffle candidates slightly to try alternative order next attempt
+                random.shuffle(candidates)
 
         if best_w is None:
-            raise RuntimeError(f"No valid edge from node {v} (collision or out of bounds)")
+            # If still no valid edge after attempts, pick any unvisited node as last resort
+            remaining = [w for w in range(n) if not visited[w]]
+            best_w = random.choice(remaining)
+            print(f"Warning: No valid edge from node {v}, jumping to node {best_w} as last resort.")
 
         path.append(best_w)
         visited[best_w] = True
         v = best_w
+
     return path
     
 def swap(path, i, j):
@@ -200,9 +245,9 @@ START_POSE = (150, 150, math.pi/2)
 obstacle_points =[
     (750, 500, "E"),   # Right / East
     (1500, 1500, "W"), # Left / West
-    (500, 1500, "E"),
+    (500, 1700, "S"),
     (1500, 750, "S"),
-    (400, 1000, "E")
+    (500, 1000, "E")
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
@@ -215,18 +260,13 @@ path = improve_path(unimproved_path, goals, radius)
 
 full_commands = []
 
-full_commands = []
-
 for i in range(len(path) - 1):
     edge = get_edge(path[i], path[i+1], goals, radius, edge_cache)
-
     if edge is None:
-        raise RuntimeError("Invalid edge in final tour")
-
+        print(f"Warning: No valid edge from node {path[i]} to {path[i+1]}, skipping")
+        continue  # Skip this edge and move to the next
     commands, _ = edge
     full_commands.extend(commands)
-
-    # Add pause after reaching each goal (except final goal if you prefer)
     full_commands.append(("PAUSE", 3000))
 
 def transform_commands(commands):
@@ -246,5 +286,5 @@ def transform_commands(commands):
     return transformed_commands
 
 transformed_cmd = transform_commands(full_commands)
-for cmd in transformed_cmd:
+for cmd in full_commands:
     print(cmd)
