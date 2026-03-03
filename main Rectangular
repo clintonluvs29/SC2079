@@ -24,7 +24,7 @@ def within_bounds(x, y):
 def build_obstacles(obstacle_points):
     obstacles = []
     for x, y, _ in obstacle_points:
-        obstacles.append((x-150, x+150, y-150, y+150))
+        obstacles.append((x-250, x+250, y-250, y+250))
     return obstacles
 
 def point_in_rect(x, y, rect):
@@ -71,8 +71,14 @@ def right_angle_path(q0, q1, obstacles):
             nonlocal x, y
             dist = euclidean((x, y), (nx, ny))
             commands.append(("FORWARD", dist))
+        
+            steps = int(dist // 10)  # sample every 10 units
+            for i in range(1, steps+1):
+                sx = x + (nx - x) * i / steps
+                sy = y + (ny - y) * i / steps
+                samples.append((sx, sy, theta))
+        
             x, y = nx, ny
-            samples.append((x, y, theta))
 
         # Try order
         for axis in order:
@@ -142,7 +148,7 @@ def nearest_neighbour_optimized(start, points, R):
                 best_w = w
 
         if best_w is None:
-            raise RuntimeError(f"No valid Dubins edge from node {v} (collision or out of bounds)")
+            raise RuntimeError(f"No valid edge from node {v} (collision or out of bounds)")
 
         path.append(best_w)
         visited[best_w] = True
@@ -176,13 +182,13 @@ def points_to_goals(points):
     goals = []
     for x, y, direction in points:
         if direction == "N":
-            goal = (x, y+300, -math.pi/2)
+            goal = (x, y+260, -math.pi/2)
         elif direction == "S":
-            goal = (x, y-300, math.pi/2)
+            goal = (x, y-260, math.pi/2)
         elif direction == "W":
-            goal = (x-300, y, 0.0)
+            goal = (x-260, y, 0.0)
         elif direction == "E":
-            goal = (x+300, y, math.pi)
+            goal = (x+260, y, math.pi)
         else:
             raise ValueError(f"Unknown direction: {direction}")
         goals.append(goal)
@@ -192,11 +198,11 @@ def points_to_goals(points):
 # --------------------- Example Run --------------------- 
 START_POSE = (150, 150, math.pi/2)   
 obstacle_points =[
-    (500, 500, "E"),   # Right / East
+    (750, 500, "E"),   # Right / East
     (1500, 1500, "W"), # Left / West
-    (500, 1500, "S"),
-    (400, 700, "E"),
-    (1750, 1000, "W")
+    (500, 1500, "E"),
+    (1500, 750, "S"),
+    (400, 1000, "E")
 ]
 
 OBSTACLES = build_obstacles(obstacle_points)
@@ -223,11 +229,22 @@ for i in range(len(path) - 1):
     # Add pause after reaching each goal (except final goal if you prefer)
     full_commands.append(("PAUSE", 3000))
 
-# Print sequential commands for the entire tour
-print("Full sequential commands:")
-for cmd in full_commands:
-    print(cmd)
+def transform_commands(commands):
+    transformed_commands = []
+    
+    for cmd in commands:
+        if cmd == ('RIGHT', 90):
+            # Replace RIGHT 90 with (RIGHT 45, BACKWARD_LEFT 45)
+            transformed_commands.extend([('RIGHT', 45), ('BACKLEFT', 45)])
+        elif cmd == ('LEFT', 90):
+            # Replace LEFT 90 with (LEFT 45, BACKWARD_RIGHT 45)
+            transformed_commands.extend([('LEFT', 45), ('BACKRIGHT', 45)])
+        else:
+            # Otherwise, keep the original command
+            transformed_commands.append(cmd)
+    
+    return transformed_commands
 
-# Print boundary information
-print(f"\nBoundaries: X=[{X_MIN}, {X_MAX}], Y=[{Y_MIN}, {Y_MAX}]")
-print(f"All generated paths should stay within these boundaries.")
+transformed_cmd = transform_commands(full_commands)
+for cmd in transformed_cmd:
+    print(cmd)
