@@ -24,7 +24,7 @@ def within_bounds(x, y):
 def build_obstacles(obstacle_points):
     obstacles = []
     for x, y, _ in obstacle_points:
-        obstacles.append((x-250, x+250, y-250, y+250))
+        obstacles.append((x-245, x+245, y-245, y+245))
     return obstacles
 
 def point_in_rect(x, y, rect):
@@ -227,13 +227,13 @@ def points_to_goals(points):
     goals = []
     for x, y, direction in points:
         if direction == "N":
-            goal = (x, y+260, -math.pi/2)
+            goal = (x, y+250, -math.pi/2)
         elif direction == "S":
-            goal = (x, y-260, math.pi/2)
+            goal = (x, y-250, math.pi/2)
         elif direction == "W":
-            goal = (x-260, y, 0.0)
+            goal = (x-250, y, 0.0)
         elif direction == "E":
-            goal = (x+260, y, math.pi)
+            goal = (x+250, y, math.pi)
         else:
             raise ValueError(f"Unknown direction: {direction}")
         goals.append(goal)
