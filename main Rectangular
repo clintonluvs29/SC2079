@@ -44,8 +44,9 @@ def path_out_of_bounds(points):
             return True
     return False
     
-def right_angle_path_with_detours(q0, q1, obstacles, detour_step=200):
-    def attempt_path(order, start, end, mid_override=None):
+def right_angle_path_with_detours(q0, q1, obstacles, detour_step=200, lookback=2):
+
+    def attempt_path(order, start, end):
         x0, y0, theta0 = start
         x1, y1, theta1 = end
         theta = normalize_to_90(theta0)
@@ -92,55 +93,150 @@ def right_angle_path_with_detours(q0, q1, obstacles, detour_step=200):
             return None
         total_length = sum(cmd[1] for cmd in commands if cmd[0] == "FORWARD")
         return commands, total_length
-    pass
 
     def attempt_u_path(start, end, axis="X", detour_offset=200):
-        """
-        U-shaped path: move partway along axis1, detour on axis2, return on axis1.
-        axis="X" means: move in X → move in Y → move in X
-        axis="Y" means: move in Y → move in X → move in Y
-        """
         x0, y0, theta0 = start
         x1, y1, theta1 = end
-
+    
+        def best_leg(s, e):
+            a = attempt_path(["X", "Y"], s, e)
+            b = attempt_path(["Y", "X"], s, e)
+            opts = [x for x in [a, b] if x is not None]
+            return min(opts, key=lambda x: x[1]) if opts else None
+    
         if axis == "X":
             mid_x = (x0 + x1) / 2
-            waypoint1 = (mid_x, y0, theta0)
-            waypoint2 = (mid_x, y1 + detour_offset, theta0)  # detour step in Y
-            waypoint3 = (x1,    y1 + detour_offset, theta0)
+            # Try offsetting relative to BOTH y0 and y1
+            for mid_y in [y0 + detour_offset, y0 - detour_offset,
+                          y1 + detour_offset, y1 - detour_offset,
+                          (y0 + y1) / 2 + detour_offset,
+                          (y0 + y1) / 2 - detour_offset]:
+                w1 = (mid_x, y0,    theta0)
+                w2 = (mid_x, mid_y, theta0)
+                w3 = (x1,    mid_y, theta0)
+                l1 = best_leg(start, w1)
+                l2 = best_leg(w1,    w2)
+                l3 = best_leg(w2,    end)
+                if l1 and l2 and l3:
+                    return l1[0]+l2[0]+l3[0], l1[1]+l2[1]+l3[1]
         else:
             mid_y = (y0 + y1) / 2
-            waypoint1 = (x0,               mid_y, theta0)
-            waypoint2 = (x1 + detour_offset, mid_y, theta0)
-            waypoint3 = (x1 + detour_offset, y1,   theta0)
-
-        # Chain 3 L-shaped legs together
-        leg1 = attempt_path(["X", "Y"], start,     waypoint1)
-        leg2 = attempt_path(["X", "Y"], waypoint1, waypoint2)
-        leg3 = attempt_path(["X", "Y"], waypoint2, end)
-
-        if leg1 and leg2 and leg3:
-            cmds = leg1[0] + leg2[0] + leg3[0]
-            total = leg1[1] + leg2[1] + leg3[1]
-            return (cmds, total)
+            # Try offsetting relative to BOTH x0 and x1
+            for mid_x in [x0 + detour_offset, x0 - detour_offset,
+                          x1 + detour_offset, x1 - detour_offset,
+                          (x0 + x1) / 2 + detour_offset,
+                          (x0 + x1) / 2 - detour_offset]:
+                w1 = (x0,    mid_y, theta0)
+                w2 = (mid_x, mid_y, theta0)
+                w3 = (mid_x, y1,    theta0)
+                l1 = best_leg(start, w1)
+                l2 = best_leg(w1,    w2)
+                l3 = best_leg(w2,    end)
+                if l1 and l2 and l3:
+                    return l1[0]+l2[0]+l3[0], l1[1]+l2[1]+l3[1]
+    
         return None
 
-    # 1. Try L-shapes first (fast)
+    def invert_command(cmd):
+        """Reverse a single command: FORWARD->BACKWARD, LEFT->RIGHT, RIGHT->LEFT."""
+        if cmd[0] == "FORWARD":
+            return ("BACKWARD", cmd[1])
+        elif cmd[0] == "LEFT":
+            return ("BACKLEFT", cmd[1])
+        elif cmd[0] == "RIGHT":
+            return ("BACKRIGHT", cmd[1])
+        return cmd  # PAUSE etc unchanged
+
+    def simulate_pose(start, commands):
+        x, y, theta = start
+        theta = normalize_to_90(theta)
+        for cmd in commands:
+            if cmd[0] == "FORWARD":
+                x += cmd[1] * math.cos(theta)
+                y += cmd[1] * math.sin(theta)
+            elif cmd[0] == "BACKWARD":
+                x -= cmd[1] * math.cos(theta)
+                y -= cmd[1] * math.sin(theta)
+            elif cmd[0] == "LEFT":
+                theta = normalize_to_90(theta + math.radians(cmd[1]))
+            elif cmd[0] == "RIGHT":
+                theta = normalize_to_90(theta - math.radians(cmd[1]))
+            elif cmd[0] == "BACKLEFT":
+                theta = normalize_to_90(theta - math.radians(cmd[1]))  # backing left turns right
+            elif cmd[0] == "BACKRIGHT":
+                theta = normalize_to_90(theta + math.radians(cmd[1]))  # backing right turns left
+        return (x, y, theta)
+
+    def try_lookback_replan(base_commands, base_length, n_back):
+        """
+        Undo the last n_back commands by inverting them, compute the new pose,
+        then re-plan from that new pose to q1.
+        Returns (full_commands, total_length) if the new plan is shorter, else None.
+        """
+        if len(base_commands) < n_back:
+            return None
+
+        kept      = base_commands[:-n_back]        # commands we keep
+        undone    = base_commands[-n_back:]         # commands we are reversing
+        inverted  = [invert_command(c) for c in reversed(undone)]  # reversed + inverted
+
+        # Find the pose after executing only the kept commands
+        mid_pose = simulate_pose(q0, kept)
+
+        # Re-plan from mid_pose to q1 (L and U shapes, no further lookback)
+        replan_xy = attempt_path(["X", "Y"], mid_pose, q1)
+        replan_yx = attempt_path(["Y", "X"], mid_pose, q1)
+        replan_candidates = [p for p in [replan_xy, replan_yx] if p is not None]
+
+        # covers going around obstacle on all 4 sides at increasing distances
+        for offset in [-200, 200, -400, 400, -600, 600, -800, 800]:
+            for axis in ["X", "Y"]:
+                u_path = attempt_u_path(q0, q1, axis=axis, detour_offset=offset)
+                if u_path:
+                    valid_paths.append(u_path)
+
+        if not replan_candidates:
+            return None
+
+        best_replan = min(replan_candidates, key=lambda p: p[1])
+
+        # Full new path: kept commands + inverted undo moves + re-planned leg
+        full_cmds   = kept + inverted + best_replan[0]
+        full_length = (
+            sum(c[1] for c in kept    if c[0] == "FORWARD") +
+            sum(c[1] for c in inverted if c[0] in ("FORWARD", "BACKWARD")) +
+            best_replan[1]
+        )
+
+        # Only return if it actually improves on the original
+        if full_length < base_length:
+            return full_cmds, full_length
+        return None
+
+    # 1. Try L-shapes
     path_xy = attempt_path(["X", "Y"], q0, q1)
     path_yx = attempt_path(["Y", "X"], q0, q1)
     valid_paths = [p for p in [path_xy, path_yx] if p is not None]
 
-    # 2. Try U-shapes
-    for offset in [-detour_step, detour_step]:
+    # 2. Try U-shapes with multiple offsets to handle large obstacles
+    for offset in [-200, 200, -400, 400, -600, 600, -800, 800]:
         for axis in ["X", "Y"]:
             u_path = attempt_u_path(q0, q1, axis=axis, detour_offset=offset)
             if u_path:
                 valid_paths.append(u_path)
+                
+    if not valid_paths:
+        return None
 
-    if valid_paths:
-        return min(valid_paths, key=lambda p: p[1])
+    best = min(valid_paths, key=lambda p: p[1])
 
-    return None
+    # 3. Try look-back: undo last 2 then last 3 commands and re-plan
+    for n_back in range(2, lookback + 2):   # covers 2 and 3 by default
+        improved = try_lookback_replan(best[0], best[1], n_back)
+        if improved:
+            best = improved
+
+    return best
     
     
 # --------------------- TSP Heuristics --------------------- #
@@ -243,8 +339,8 @@ def points_to_goals(points):
 # --------------------- Example Run --------------------- 
 START_POSE = (150, 150, math.pi/2)   
 obstacle_points =[
-    (750, 500, "E"),   # Right / East
-    (1500, 1500, "W"), # Left / West
+    (750, 500, "W"),   # Right / East
+    (1500, 1400, "S"), # Left / West
     (500, 1700, "S"),
     (1500, 750, "S"),
     (500, 1000, "E")
@@ -286,5 +382,5 @@ def transform_commands(commands):
     return transformed_commands
 
 transformed_cmd = transform_commands(full_commands)
-for cmd in full_commands:
+for cmd in transformed_cmd:
     print(cmd)
